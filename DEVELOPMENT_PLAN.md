@@ -795,7 +795,7 @@ public interface BookRepository extends JpaRepository<Book, BookId>, CustomBookR
 
 ---
 
-#### 任务2.9.3: 配置CI/CD
+#### 任务2.9.3: 配置CI/CD （目前先不实现）
 
 **目标**: 设置自动化构建和测试
 

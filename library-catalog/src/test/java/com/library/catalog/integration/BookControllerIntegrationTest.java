@@ -70,13 +70,14 @@ class BookControllerIntegrationTest {
 
     @Test
     void testGetAllBooksAPI() throws Exception {
+        long countBefore = bookRepository.count();
         createAndSaveDraftBook("978-7-111-40701-0", "领域驱动设计");
         createAndSaveDraftBook("978-7-111-54738-9", "实现领域驱动设计");
 
         mockMvc.perform(get("/api/catalog/books"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.success").value(true))
-            .andExpect(jsonPath("$.data.length()").value(2));
+            .andExpect(jsonPath("$.data.length()").value((int) countBefore + 2));
     }
 
     @Test
