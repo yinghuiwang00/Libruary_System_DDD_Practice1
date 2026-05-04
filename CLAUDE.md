@@ -209,8 +209,26 @@ public class LibraryProperties {
 
 - **Unit Tests**: Individual domain logic, services
 - **Integration Tests**: Repository operations, API endpoints
+- **Functional Tests**: Cucumber BDD tests covering main positive (happy path) flows only
+- **Test Plan**:  refer to Architecture_Design/15-TESTPLAN.md for the testplan of Functional Test and Integration Test
 - **80%+ Coverage Required** (per user rules)
 - **TDD Approach**: Write tests first, implement to pass tests (per `~/.claude/rules/common/testing.md`)
+
+### Functional Testing with Cucumber
+
+Use Cucumber for BDD-style functional tests. Scope to **main positive flows for each component only** — edge cases and error paths belong in unit tests.
+
+```gherkin
+# Example: Borrowing a book (happy path)
+Feature: Book Borrowing
+  Scenario: Patron successfully borrows an available book
+    Given a patron with valid membership
+    And a book copy is available
+    When the patron borrows the book
+    Then the book status changes to "borrowed"
+    And the patron's borrowed count increases by 1
+```
+Dependencies: `io.cucumber:cucumber-java`, `io.cucumber:cucumber-spring`, `io.cucumber:cucumber-junit-platform-engine`
 
 Test configuration:
 
@@ -244,6 +262,7 @@ All architecture and design documents are in `Architecture_Design/`:
 
 **Detailed Development Plan**: See `DEVELOPMENT_PLAN.md` for complete step-by-step development roadmap.
 
+
 ### How to Continue Development
 
 When starting or resuming development:
@@ -256,23 +275,35 @@ When starting or resuming development:
 
 ### Current Development Status
 
-The system is in **planning/design phase** - no implementation code exists yet.
+The system is in **implementation phase** - Catalog Context (Stage 2) is ~75% complete.
 
-**Next Step**: Start with "1. 项目初始化阶段" in DEVELOPMENT_PLAN.md
+**Completed**:
+- Project initialization (Stage 1)
+- Catalog Context domain layer (IDs, ISBN, entities, aggregates, exceptions, repositories)
+- Catalog Context application layer (commands, DTOs, application service)
+- Catalog Context interface layer (BookController, AuthorController, GlobalExceptionHandler)
+- Shared module (domain events, aggregate IDs)
+
+**Next Step**: Continue with remaining Catalog Context tasks:
+1. Task 2.3.2: 自定义仓储实现 (Custom repository with Criteria API)
+2. Task 2.4.1: ISBNValidationService (external API integration)
+3. Task 2.7.x: 基础设施层 (JPA mapping, database config)
+4. Task 2.8.x: 事件驱动 (Kafka integration)
+5. Task 2.9.x: 集成测试和CI/CD
 
 ### Development Stages Overview
 
 | Stage | Context | Status | Time Estimate |
 |-------|----------|--------|---------------|
-| 1 | Project Initialization | Not Started | 2 hours |
-| 2 | Catalog Context | Not Started | 50 hours |
+| 1 | Project Initialization | **Complete** | 2 hours |
+| 2 | Catalog Context | **~75% Done** | 50 hours |
 | 3 | Inventory Context | Not Started | 20 hours |
 | 4 | Circulation Context | Not Started | 25 hours |
 | 5 | Patron Context | Not Started | 14 hours |
 | 6 | Payment Context | Not Started | 14 hours |
 | 7 | Analytics Context | Not Started | 10 hours |
 | 8 | Notification Context | Not Started | 12 hours |
-| 9 | Shared Module | Not Started | 6 hours |
+| 9 | Shared Module | **~50% Done** | 6 hours |
 | 10 | Cross-Context Integration | Not Started | 22 hours |
 
 **Total Estimated Time**: ~213 hours (5-6 weeks full-time)
@@ -283,10 +314,23 @@ The system is in **planning/design phase** - no implementation code exists yet.
 2. **For Spring specifics**: Reference `10-Spring实现指南.md` for patterns and examples
 3. **Follow DDD layering**: Respect domain/application/infrastructure/interfaces boundaries
 4. **Use TDD**: Write tests first, implement to pass tests (80%+ coverage required)
+   - Use **tdd-guide** agent
+   - Write tests first (RED)
+   - Implement to pass tests (GREEN)
+   - Refactor (IMPROVE)
+   - Verify 80%+ coverage
 5. **Event-driven**: Use domain events for cross-context communication
 6. **Transaction boundaries**: Use `@Transactional` appropriately, read-only for queries
 7. **Versioning**: All aggregates must have `@Version` for optimistic locking
 8. **Audit fields**: Include `created_at`, `updated_at`, `created_by`, `updated_by` where applicable
+9. **Code Review**
+   - Use **code-reviewer** agent immediately after writing code
+   - Address CRITICAL and HIGH issues
+   - Fix MEDIUM issues when possible
+10. **Commit & Push**
+   - Detailed commit messages
+   - Follow conventional commits format
+   - See [git-workflow.md](~/.claude/rules/common/git-workflow.md) for commit message format and PR process
 
 ## Security Guidelines
 

@@ -1,0 +1,5 @@
+# library-shared is a library module, not a runnable service.
+# This file provides shared configuration defaults.
+spring:
+  jpa:
+    open-in-view: false
