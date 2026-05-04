@@ -3,9 +3,11 @@
 > **版本**: v1.1
 > **创建日期**: 2026-05-03
 > **最后更新**: 2026-05-04
-> **状态**: 进行中 - 阶段一（编目上下文）已完成，准备进入阶段二
+> **状态**: 进行中 - 阶段二（馆藏上下文）已完成，准备进入阶段三
 
 本文档提供了从零开始实现图书馆管理系统的详细开发计划。每个任务都是可独立执行的，并提供了具体的实现步骤和验收标准。
+
+注意要follow Architecture_Design目录里面对应的详细设计文件
 
 每完成一个task，对当前task做一个总结，保存在Progress目录里面。
 
@@ -851,9 +853,9 @@ public interface BookRepository extends JpaRepository<Book, BookId>, CustomBookR
 4. 实现格式化显示
 
 **验收标准**:
-- [ ] 不可变对象
-- [ ] 包含位置验证
-- [ ] 支持不同类型的图书馆位置
+- [x] 不可变对象
+- [x] 包含位置验证
+- [x] 支持不同类型的图书馆位置
 
 **预计时间**: 1.5小时
 
@@ -873,9 +875,9 @@ public interface BookRepository extends JpaRepository<Book, BookId>, CustomBookR
 4. 编写单元测试
 
 **验收标准**:
-- [ ] 支持多分馆
-- [ ] 包含地理信息
-- [ ] 80%+测试覆盖率
+- [x] 支持多分馆
+- [x] 包含地理信息
+- [x] 80%+测试覆盖率
 
 **预计时间**: 2小时
 
@@ -900,10 +902,10 @@ public interface BookRepository extends JpaRepository<Book, BookId>, CustomBookR
 5. 编写单元测试
 
 **验收标准**:
-- [ ] 状态机正确实现
-- [ ] 不变量得到保护
-- [ ] 包含位置关联
-- [ ] 80%+测试覆盖率
+- [x] 状态机正确实现
+- [x] 不变量得到保护
+- [x] 包含位置关联
+- [x] 80%+测试覆盖率
 
 **预计时间**: 3小时
 
@@ -930,10 +932,10 @@ public interface BookRepository extends JpaRepository<Book, BookId>, CustomBookR
 7. 编写单元测试
 
 **验收标准**:
-- [ ] 聚合边界清晰
-- [ ] 不变量得到保护
-- [ ] 支持跨图书馆同步
-- [ ] 80%+测试覆盖率
+- [x] 聚合边界清晰
+- [x] 不变量得到保护
+- [x] 支持跨图书馆同步
+- [x] 80%+测试覆盖率
 
 **预计时间**: 3小时
 
@@ -958,9 +960,9 @@ public interface BookRepository extends JpaRepository<Book, BookId>, CustomBookR
    - 跨图书馆库存查询
 
 **验收标准**:
-- [ ] 仓储接口清晰
-- [ ] 支持复杂查询
-- [ ] 80%+测试覆盖率
+- [x] 仓储接口清晰
+- [x] 支持复杂查询
+- [x] 80%+测试覆盖率
 
 **预计时间**: 2小时
 
@@ -990,11 +992,11 @@ public interface BookRepository extends JpaRepository<Book, BookId>, CustomBookR
 5. 编写集成测试
 
 **验收标准**:
-- [ ] 副本状态正确更新
-- [ ] 跨图书馆同步正常
-- [ ] 事件正确发布
-- [ ] 事务边界正确
-- [ ] 80%+测试覆盖率
+- [x] 副本状态正确更新
+- [x] 跨图书馆同步正常
+- [x] 事件正确发布
+- [x] 事务边界正确
+- [x] 80%+测试覆盖率
 
 **预计时间**: 3小时
 
@@ -1019,9 +1021,9 @@ public interface BookRepository extends JpaRepository<Book, BookId>, CustomBookR
 3. 编写集成测试
 
 **验收标准**:
-- [ ] 用例实现完整
-- [ ] 权限检查正确
-- [ ] 80%+测试覆盖率
+- [x] 用例实现完整
+- [x] 权限检查正确
+- [x] 80%+测试覆盖率
 
 **预计时间**: 2小时
 
@@ -1045,9 +1047,9 @@ public interface BookRepository extends JpaRepository<Book, BookId>, CustomBookR
 3. 编写集成测试
 
 **验收标准**:
-- [ ] API文档完整
-- [ ] 80%+测试覆盖率
-- [ ] 事件正常发布
+- [x] API文档完整
+- [x] 80%+测试覆盖率
+- [x] 事件正常发布
 
 **预计时间**: 2小时
 
@@ -1056,10 +1058,10 @@ public interface BookRepository extends JpaRepository<Book, BookId>, CustomBookR
 ### 3.4 阶段二总结
 
 **阶段二完成标准**:
-- [ ] 馆藏上下文完全实现
-- [ ] 80%+测试覆盖率
-- [ ] 跨图书馆同步功能工作
-- [ ] 事件发布正常
+- [x] 馆藏上下文完全实现
+- [x] 80%+测试覆盖率
+- [x] 跨图书馆同步功能工作
+- [x] 事件发布正常
 
 **预计总时间**: 约20小时
 
@@ -2459,7 +2461,7 @@ public interface BookRepository extends JpaRepository<Book, BookId>, CustomBookR
 **计划版本**: v1.1
 **创建日期**: 2026-05-03
 **最后更新**: 2026-05-04
-**状态**: 进行中 - 阶段一（编目上下文）已完成，准备进入阶段二
+**状态**: 进行中 - 阶段二（馆藏上下文）已完成，准备进入阶段三
 
 ---
 

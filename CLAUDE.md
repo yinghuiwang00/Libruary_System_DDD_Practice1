@@ -275,35 +275,34 @@ When starting or resuming development:
 
 ### Current Development Status
 
-The system is in **implementation phase** - Catalog Context (Stage 2) is ~75% complete.
+The system is in **implementation phase** - Catalog Context (Stage 1) and Inventory Context (Stage 2) are complete.
 
 **Completed**:
 - Project initialization (Stage 1)
-- Catalog Context domain layer (IDs, ISBN, entities, aggregates, exceptions, repositories)
-- Catalog Context application layer (commands, DTOs, application service)
-- Catalog Context interface layer (BookController, AuthorController, GlobalExceptionHandler)
-- Shared module (domain events, aggregate IDs)
+- Catalog Context - full DDD layers (domain, application, infrastructure, interface)
+- Inventory Context - full DDD layers (domain, application, infrastructure, interface)
+- Shared module (domain events, aggregate IDs: BookId, AuthorId, PublisherId, CategoryId, LibraryId, CopyId, CopyInventoryId)
 
-**Next Step**: Continue with remaining Catalog Context tasks:
-1. Task 2.3.2: 自定义仓储实现 (Custom repository with Criteria API)
-2. Task 2.4.1: ISBNValidationService (external API integration)
-3. Task 2.7.x: 基础设施层 (JPA mapping, database config)
-4. Task 2.8.x: 事件驱动 (Kafka integration)
-5. Task 2.9.x: 集成测试和CI/CD
+**Next Step**: Continue with Circulation Context (Stage 3):
+1. Task 4.1.1: Fine值对象
+2. Task 4.1.2: CirculationPolicy值对象
+3. Task 4.1.3: Loan聚合根
+4. Task 4.1.4: Hold聚合根
+5. Task 4.2.x: Circulation仓储和服务
 
 ### Development Stages Overview
 
 | Stage | Context | Status | Time Estimate |
 |-------|----------|--------|---------------|
 | 1 | Project Initialization | **Complete** | 2 hours |
-| 2 | Catalog Context | **~75% Done** | 50 hours |
-| 3 | Inventory Context | Not Started | 20 hours |
+| 2 | Catalog Context | **Complete** | 50 hours |
+| 3 | Inventory Context | **Complete** | 20 hours |
 | 4 | Circulation Context | Not Started | 25 hours |
 | 5 | Patron Context | Not Started | 14 hours |
 | 6 | Payment Context | Not Started | 14 hours |
 | 7 | Analytics Context | Not Started | 10 hours |
 | 8 | Notification Context | Not Started | 12 hours |
-| 9 | Shared Module | **~50% Done** | 6 hours |
+| 9 | Shared Module | **~70% Done** | 6 hours |
 | 10 | Cross-Context Integration | Not Started | 22 hours |
 
 **Total Estimated Time**: ~213 hours (5-6 weeks full-time)
