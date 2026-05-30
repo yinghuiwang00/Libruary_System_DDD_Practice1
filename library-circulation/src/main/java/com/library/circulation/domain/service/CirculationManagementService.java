@@ -290,6 +290,11 @@ public class CirculationManagementService {
         return holdRepository.findByBookIdAndStatus(bookId, HoldStatus.WAITING);
     }
 
+    @Transactional(readOnly = true)
+    public List<Loan> getAllLoansByStatus(LoanStatus status) {
+        return loanRepository.findByStatus(status);
+    }
+
     private void processNextHold(BookId bookId) {
         Optional<Hold> nextHold = holdRepository.findFirstByBookIdAndStatusOrderByQueuePositionAsc(
             bookId, HoldStatus.WAITING

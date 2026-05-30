@@ -115,4 +115,13 @@ public class CirculationApplicationService {
             .map(HoldDTO::fromDomain)
             .collect(Collectors.toList());
     }
+
+    @Transactional(readOnly = true)
+    public List<LoanDTO> getAllLoansByStatus(String status) {
+        return circulationService.getAllLoansByStatus(
+            com.library.circulation.domain.model.enums.LoanStatus.valueOf(status)
+        ).stream()
+            .map(LoanDTO::fromDomain)
+            .collect(Collectors.toList());
+    }
 }

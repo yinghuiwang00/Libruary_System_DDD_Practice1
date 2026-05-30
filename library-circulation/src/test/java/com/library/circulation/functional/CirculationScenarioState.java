@@ -1,7 +1,11 @@
 package com.library.circulation.functional;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 import org.springframework.test.web.servlet.MvcResult;
+
+import java.time.LocalDateTime;
 
 @Component
 public class CirculationScenarioState {
@@ -11,6 +15,10 @@ public class CirculationScenarioState {
     private String copyId;
     private String patronId;
     private String bookId;
+    private LocalDateTime originalDueDate;
+
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
 
     public MvcResult getMvcResult() { return mvcResult; }
     public void setMvcResult(MvcResult mvcResult) { this.mvcResult = mvcResult; }
@@ -24,4 +32,7 @@ public class CirculationScenarioState {
     public void setPatronId(String patronId) { this.patronId = patronId; }
     public String getBookId() { return bookId; }
     public void setBookId(String bookId) { this.bookId = bookId; }
+    public LocalDateTime getOriginalDueDate() { return originalDueDate; }
+    public void setOriginalDueDate(LocalDateTime originalDueDate) { this.originalDueDate = originalDueDate; }
+    public JdbcTemplate getJdbcTemplate() { return jdbcTemplate; }
 }
