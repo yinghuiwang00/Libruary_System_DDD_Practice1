@@ -1,5 +1,9 @@
 package com.library.catalog.domain.service;
 
+import com.library.catalog.domain.event.BookCreatedEvent;
+import com.library.catalog.domain.event.BookDeletedEvent;
+import com.library.catalog.domain.event.BookPublishedEvent;
+import com.library.catalog.domain.event.BookUpdatedEvent;
 import com.library.catalog.domain.exception.BookNotFoundException;
 import com.library.catalog.domain.exception.DuplicateISBNException;
 import com.library.catalog.domain.model.Author;
@@ -8,6 +12,7 @@ import com.library.catalog.domain.model.ISBN;
 import com.library.catalog.domain.model.enums.AuthorRole;
 import com.library.catalog.domain.repository.AuthorRepository;
 import com.library.catalog.domain.repository.BookRepository;
+import com.library.catalog.infrastructure.messaging.CatalogDomainEventPublisher;
 import com.library.shared.domain.model.BookId;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,10 +26,14 @@ public class BookManagementService {
 
     private final BookRepository bookRepository;
     private final AuthorRepository authorRepository;
+    private final CatalogDomainEventPublisher eventPublisher;
 
-    public BookManagementService(BookRepository bookRepository, AuthorRepository authorRepository) {
+    public BookManagementService(BookRepository bookRepository,
+                                 AuthorRepository authorRepository,
+                                 CatalogDomainEventPublisher eventPublisher) {
         this.bookRepository = bookRepository;
         this.authorRepository = authorRepository;
+        this.eventPublisher = eventPublisher;
     }
 
     @Transactional
@@ -34,7 +43,10 @@ public class BookManagementService {
             throw new DuplicateISBNException("Book with ISBN " + isbn.getValue() + " already exists");
         }
         Book book = Book.create(isbn, title, description, publicationDate, pageCount, language);
-        return bookRepository.save(book);
+        Book saved = bookRepository.save(book);
+        eventPublisher.publish(new BookCreatedEvent(
+            saved.getId().getValue(), saved.getIsbn().getValue(), saved.getTitle()));
+        return saved;
     }
 
     @Transactional
@@ -78,7 +90,10 @@ public class BookManagementService {
     public Book publishBook(BookId bookId) {
         Book book = findBookOrThrow(bookId);
         book.publish();
-        return bookRepository.save(book);
+        Book saved = bookRepository.save(book);
+        eventPublisher.publish(new BookPublishedEvent(
+            saved.getId().getValue(), saved.getIsbn().getValue(), saved.getTitle()));
+        return saved;
     }
 
     @Transactional
@@ -93,7 +108,10 @@ public class BookManagementService {
                            LocalDate publicationDate, Integer pageCount, String language) {
         Book book = findBookOrThrow(bookId);
         book.updateBasicInfo(title, description, publicationDate, pageCount, language);
-        return bookRepository.save(book);
+        Book saved = bookRepository.save(book);
+        eventPublisher.publish(new BookUpdatedEvent(
+            saved.getId().getValue(), saved.getTitle()));
+        return saved;
     }
 
     @Transactional
@@ -101,6 +119,8 @@ public class BookManagementService {
         Book book = findBookOrThrow(bookId);
         book.delete();
         bookRepository.save(book);
+        eventPublisher.publish(new BookDeletedEvent(
+            book.getId().getValue(), book.getTitle()));
     }
 
     public Book getBook(BookId bookId) {

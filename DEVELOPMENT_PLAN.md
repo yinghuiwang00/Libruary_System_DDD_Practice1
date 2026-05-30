@@ -3,7 +3,7 @@
 > **版本**: v1.1
 > **创建日期**: 2026-05-03
 > **最后更新**: 2026-05-04
-> **状态**: 进行中 - 阶段二（馆藏上下文）已完成，准备进入阶段三
+> **状态**: 进行中 - 阶段四（会员上下文）已完成，准备进入阶段五
 
 本文档提供了从零开始实现图书馆管理系统的详细开发计划。每个任务都是可独立执行的，并提供了具体的实现步骤和验收标准。
 
@@ -1086,10 +1086,10 @@ public interface BookRepository extends JpaRepository<Book, BookId>, CustomBookR
 5. 编写单元测试
 
 **验收标准**:
-- [ ] 罚金计算正确（逾期天数 × 日费率）
-- [ ] 最大罚金限制生效
-- [ ] 罚金可支付
-- [ ] 80%+测试覆盖率
+- [x] 罚金计算正确（逾期天数 × 日费率）
+- [x] 最大罚金限制生效
+- [x] 罚金可支付
+- [x] 80%+测试覆盖率
 
 **预计时间**: 2小时
 
@@ -1113,9 +1113,9 @@ public interface BookRepository extends JpaRepository<Book, BookId>, CustomBookR
 4. 编写单元测试
 
 **验收标准**:
-- [ ] 策略规则可配置
-- [ ] 不变量得到保护
-- [ ] 80%+测试覆盖率
+- [x] 策略规则可配置
+- [x] 不变量得到保护
+- [x] 80%+测试覆盖率
 
 **预计时间**: 1.5小时
 
@@ -1156,11 +1156,11 @@ public interface BookRepository extends JpaRepository<Book, BookId>, CustomBookR
 6. 编写全面的单元测试
 
 **验收标准**:
-- [ ] 状态机正确
-- [ ] 续借规则正确
-- [ ] 罚金计算准确
-- [ ] 召回逻辑正确
-- [ ] 80%+测试覆盖率
+- [x] 状态机正确
+- [x] 续借规则正确
+- [x] 罚金计算准确
+- [x] 召回逻辑正确
+- [x] 80%+测试覆盖率
 
 **预计时间**: 4小时
 
@@ -1192,10 +1192,10 @@ public interface BookRepository extends JpaRepository<Book, BookId>, CustomBookR
 5. 编写单元测试
 
 **验收标准**:
-- [ ] 预约队列正确管理
-- [ ] 状态转换正确
-- [ ] 先进先出原则
-- [ ] 80%+测试覆盖率
+- [x] 预约队列正确管理
+- [x] 状态转换正确
+- [x] 先进先出原则
+- [x] 80%+测试覆盖率
 
 **预计时间**: 3小时
 
@@ -1221,9 +1221,9 @@ public interface BookRepository extends JpaRepository<Book, BookId>, CustomBookR
    - 查找即将到期的借阅
 
 **验收标准**:
-- [ ] 仓储接口清晰
-- [ ] 复杂查询优化
-- [ ] 80%+测试覆盖率
+- [x] 仓储接口清晰
+- [x] 复杂查询优化
+- [x] 80%+测试覆盖率
 
 **预计时间**: 2小时
 
@@ -1259,11 +1259,11 @@ public interface BookRepository extends JpaRepository<Book, BookId>, CustomBookR
 5. 编写集成测试
 
 **验收标准**:
-- [ ] 借书流程完整
-- [ ] 业务规则得到验证
-- [ ] 事件正确发布
-- [ ] 事务边界正确
-- [ ] 80%+测试覆盖率
+- [x] 借书流程完整
+- [x] 业务规则得到验证
+- [x] 事件正确发布
+- [x] 事务边界正确
+- [x] 80%+测试覆盖率
 
 **预计时间**: 5小时
 
@@ -1290,14 +1290,13 @@ public interface BookRepository extends JpaRepository<Book, BookId>, CustomBookR
 3. 编写集成测试
 
 **验收标准**:
-- [ ] 用例实现完整
-- [ ] 权限检查正确
-- [ ] 80%+测试覆盖率
+- [x] 用例实现完整
+- [x] 权限检查正确
+- [x] 80%+测试覆盖率
 
 **预计时间**: 3小时
 
 ---
-
 #### 任务4.3.2: 实现CirculationController
 
 **目标**: 提供借阅管理的REST API
@@ -1318,9 +1317,9 @@ public interface BookRepository extends JpaRepository<Book, BookId>, CustomBookR
 4. 编写集成测试
 
 **验收标准**:
-- [ ] API文档完整
-- [ ] 80%+测试覆盖率
-- [ ] 事件正常发布
+- [x] API文档完整
+- [x] 80%+测试覆盖率
+- [x] 事件正常发布
 
 **预计时间**: 3小时
 
@@ -1329,12 +1328,12 @@ public interface BookRepository extends JpaRepository<Book, BookId>, CustomBookR
 ### 4.4 阶段三总结
 
 **阶段三完成标准**:
-- [ ] 借阅上下文完全实现
-- [ ] 80%+测试覆盖率
-- [ ] 借书和还书流程完整
-- [ ] 预约机制正常工作
-- [ ] 罚金计算准确
-- [ ] 事件发布正常
+- [x] 借阅上下文完全实现
+- [x] 80%+测试覆盖率
+- [x] 借书和还书流程完整
+- [x] 预约机制正常工作
+- [x] 罚金计算准确
+- [x] 事件发布正常
 
 **预计总时间**: 约25小时
 
@@ -1377,39 +1376,26 @@ public interface BookRepository extends JpaRepository<Book, BookId>, CustomBookR
 5. 编写单元测试
 
 **验收标准**:
-- [ ] 会员状态转换正确
-- [ ] 借阅权限验证准确
-- [ ] 80%+测试覆盖率
+- [x] 会员状态转换正确
+- [x] 借阅权限验证准确
+- [x] 80%+测试覆盖率
 
 **预计时间**: 3小时
 
 ---
 
-#### 任务5.1.2: 实现PatronAccount实体
+#### 任务5.1.2: 实现BorrowingPrivilege值对象
 
-**目标**: 实现会员账户实体
+**目标**: 实现借阅特权值对象（替代原PatronAccount，简化设计）
 
-**文件路径**: `library-patron/src/main/java/com/library/patron/domain/model/PatronAccount.java`
-
-**实现步骤**:
-
-1. 创建PatronAccount实体
-2. 包含字段：
-   - 账户余额
-   - 罚金总额
-   - 支付历史
-3. 实现领域行为：
-   - `deductFine()` - 扣除罚金
-   - `processPayment()` - 处理支付
-   - `calculateBalance()` - 计算余额
-4. 编写单元测试
+**文件路径**: `library-patron/src/main/java/com/library/patron/domain/model/BorrowingPrivilege.java`
 
 **验收标准**:
-- [ ] 账户余额计算正确
-- [ ] 罚金扣减准确
-- [ ] 80%+测试覆盖率
+- [x] 按PatronType配置默认权限
+- [x] 支持自定义权限构造
+- [x] 80%+测试覆盖率
 
-**预计时间**: 2小时
+**预计时间**: 1.5小时
 
 ---
 
@@ -1431,8 +1417,8 @@ public interface BookRepository extends JpaRepository<Book, BookId>, CustomBookR
    - 统计活跃会员数
 
 **验收标准**:
-- [ ] 仓储接口清晰
-- [ ] 80%+测试覆盖率
+- [x] 仓储接口清晰
+- [x] 80%+测试覆盖率
 
 **预计时间**: 1.5小时
 
@@ -1459,10 +1445,10 @@ public interface BookRepository extends JpaRepository<Book, BookId>, CustomBookR
 4. 编写集成测试
 
 **验收标准**:
-- [ ] 会员注册流程完整
-- [ ] 状态验证准确
-- [ ] 事件正确发布
-- [ ] 80%+测试覆盖率
+- [x] 会员注册流程完整
+- [x] 状态验证准确
+- [x] 事件正确发布
+- [x] 80%+测试覆盖率
 
 **预计时间**: 3小时
 
@@ -1488,8 +1474,8 @@ public interface BookRepository extends JpaRepository<Book, BookId>, CustomBookR
 3. 编写集成测试
 
 **验收标准**:
-- [ ] 用例实现完整
-- [ ] 80%+测试覆盖率
+- [x] 用例实现完整
+- [x] 80%+测试覆盖率
 
 **预计时间**: 2小时
 
@@ -1513,8 +1499,8 @@ public interface BookRepository extends JpaRepository<Book, BookId>, CustomBookR
 3. 编写集成测试
 
 **验收标准**:
-- [ ] API文档完整
-- [ ] 80%+测试覆盖率
+- [x] API文档完整
+- [x] 80%+测试覆盖率
 
 **预计时间**: 2.5小时
 
@@ -1523,10 +1509,10 @@ public interface BookRepository extends JpaRepository<Book, BookId>, CustomBookR
 ### 5.4 阶段四总结
 
 **阶段四完成标准**:
-- [ ] 会员上下文完全实现
-- [ ] 80%+测试覆盖率
-- [ ] 会员注册和验证流程完整
-- [ ] 账户管理正常
+- [x] 会员上下文完全实现
+- [x] 80%+测试覆盖率
+- [x] 会员注册和验证流程完整
+- [x] 账户管理正常
 
 **预计总时间**: 约14小时
 
@@ -2460,8 +2446,8 @@ public interface BookRepository extends JpaRepository<Book, BookId>, CustomBookR
 
 **计划版本**: v1.1
 **创建日期**: 2026-05-03
-**最后更新**: 2026-05-04
-**状态**: 进行中 - 阶段二（馆藏上下文）已完成，准备进入阶段三
+**最后更新**: 2026-05-30
+**状态**: 进行中 - 阶段四（会员上下文）已完成，准备进入阶段五
 
 ---
 

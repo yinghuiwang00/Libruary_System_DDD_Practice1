@@ -2,8 +2,12 @@ package com.library.inventory.domain.service;
 
 import com.library.inventory.domain.event.CopyAddedEvent;
 import com.library.inventory.domain.event.CopyBorrowedEvent;
+import com.library.inventory.domain.event.CopyDamagedEvent;
+import com.library.inventory.domain.event.CopyLostEvent;
 import com.library.inventory.domain.event.CopyReturnedEvent;
+import com.library.inventory.domain.event.CopiesBatchAddedEvent;
 import com.library.inventory.domain.event.InventoryCreatedEvent;
+import com.library.inventory.domain.event.LowStockAlertEvent;
 import com.library.inventory.domain.exception.*;
 import com.library.inventory.domain.model.*;
 import com.library.inventory.domain.model.enums.CopyStatus;
@@ -84,6 +88,12 @@ public class InventoryManagementService {
         eventPublisher.publish(new CopyAddedEvent(
             copy.getId().getValue(), inventoryId, inventory.getBookId(), barcode));
 
+        if (inventory.isLowStock()) {
+            eventPublisher.publish(new LowStockAlertEvent(
+                inventoryId, inventory.getBookId(),
+                inventory.getAvailableCopies(), 2));
+        }
+
         return copy;
     }
 
@@ -101,6 +111,16 @@ public class InventoryManagementService {
         }
 
         inventoryRepository.save(inventory);
+
+        eventPublisher.publish(new CopiesBatchAddedEvent(
+            inventoryId, inventory.getBookId(), count));
+
+        if (inventory.isLowStock()) {
+            eventPublisher.publish(new LowStockAlertEvent(
+                inventoryId, inventory.getBookId(),
+                inventory.getAvailableCopies(), 2));
+        }
+
         return copies;
     }
 
@@ -156,6 +176,9 @@ public class InventoryManagementService {
         inventory.onCopyStatusChanged(oldStatus, copy.getStatus());
         inventoryRepository.save(inventory);
         copyRepository.save(copy);
+
+        eventPublisher.publish(new CopyDamagedEvent(
+            copyId, inventory.getId().getValue(), damageDescription));
     }
 
     @Transactional
@@ -172,6 +195,9 @@ public class InventoryManagementService {
         inventory.onCopyStatusChanged(oldStatus, copy.getStatus());
         inventoryRepository.save(inventory);
         copyRepository.save(copy);
+
+        eventPublisher.publish(new CopyLostEvent(
+            copyId, inventory.getId().getValue(), reason));
     }
 
     public List<CopyInventory> getInventoryOverview(String bookId) {

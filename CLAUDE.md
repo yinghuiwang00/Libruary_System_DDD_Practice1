@@ -4,80 +4,69 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Enterprise Library Management System built with Domain-Driven Design (DDD) principles. Currently in planning/design phase with comprehensive architecture documentation but no implementation code yet.
+Enterprise Library Management System built with Domain-Driven Design (DDD) principles.
 
-**Status:** Early stage - Architecture design complete, implementation pending
+**Status:** Implementation phase - 4 of 7 bounded contexts complete, Payment Context next
 
 ## Architecture
 
-### Bounded Contexts (Planned Module Structure)
+### Bounded Contexts
 
-The system is organized into 7 bounded contexts, each as a separate Spring Boot module:
+| Module | Port | Description |
+|--------|------|-------------|
+| library-catalog | 8081 | Book info, ISBN, metadata, authors, publishers, categories |
+| library-inventory | 8082 | Book copies, multi-branch inventory, library locations |
+| library-circulation | 8083 | Borrow/return, holds/reservations, fines, renewals |
+| library-patron | 8084 | Membership, authentication, borrowing permissions |
+| library-payment | 8085 | Fine payments, third-party payment integration |
+| library-analytics | 8086 | Statistics, popular books, reporting |
+| library-notification | 8087 | Due reminders, reservation alerts, multi-channel |
+| library-shared | - | Shared domain concepts (IDs, events, base classes) |
 
-- **library-catalog/** - Book information management, ISBN integration, metadata
-- **library-inventory/** - Book copy management, multi-branch inventory sync
-- **library-circulation/** - Borrow/return flows, reservations, fine calculation
-- **library-patron/** - Membership, authentication, borrowing permissions
-- **library-payment/** - Fine payments, third-party payment integration
-- **library-analytics/** - Statistics, popular books, reporting
-- **library-notification/** - Due reminders, reservation alerts, multi-channel notifications
-- **library-shared/** - Shared domain concepts, common infrastructure
-
-### DDD Layering (Per Module)
+### DDD Layering (Actual Package Structure)
 
 ```
-domain/          # Domain layer (pure business logic)
-  ├── model/
-  │   ├── aggregate/     # Aggregate roots
-  │   ├── entity/        # Entities
-  │   ├── valueobject/   # Value objects
-  │   └── enum/          # Enums
-  ├── service/           # Domain services
-  ├── repository/        # Repository interfaces
-  └── event/             # Domain events
+domain/
+  ├── model/          # Aggregates, entities, value objects, enums (all in model/)
+  │   └── enums/      # Enum classes
+  ├── service/        # Domain services
+  ├── repository/     # Repository interfaces (JPA repositories)
+  ├── event/          # Domain events
+  └── exception/      # Domain exceptions (with error codes)
 
-application/      # Application layer (orchestration)
-  ├── service/           # Application services
-  ├── command/           # Command objects
-  ├── query/             # Query objects
-  └── dto/               # DTOs
+application/
+  ├── service/        # Application services (orchestration)
+  ├── command/        # Command objects
+  ├── query/          # Query/criteria objects
+  └── dto/            # Data transfer objects + ApiResponse
 
-infrastructure/  # Infrastructure layer (technical concerns)
-  ├── persistence/        # JPA entities, repository implementations
-  ├── external/           # External service integrations
-  └── messaging/          # Message queue integration
+infrastructure/
+  ├── persistence/    # Custom repository implementations (Criteria API)
+  ├── messaging/      # Kafka event publishers
+  └── config/         # JPA, module-specific config
 
-interfaces/       # Interface layer (APIs)
-  ├── rest/              # REST controllers
-  ├── graphql/           # GraphQL resolvers
-  └── dto/               # API DTOs
+interfaces/
+  └── rest/           # Controllers + GlobalExceptionHandler
 ```
 
-### Key Architectural Patterns
+### Key Patterns
 
-- **Event-Driven Architecture**: Domain events for cross-context communication
-- **CQRS**: Separate read and write models for query optimization
-- **Event Sourcing**: Store domain events for audit and state reconstruction
-- **Saga Pattern**: Handle distributed transactions across services
-- **Optimistic Locking**: `@Version` field on aggregates for concurrency control
+- **Aggregate Root**: `@Entity` with `@EmbeddedId` (custom ID class), `@Version` for optimistic locking
+- **Repository**: Interface extends `JpaRepository` + `CustomXxxRepository`, custom impl uses Criteria API
+- **Domain Events**: Published via `CatalogDomainEventPublisher` (local Spring event + Kafka)
+- **Transactions**: Class-level `@Transactional(readOnly = true)`, write methods override with `@Transactional`
+- **Exception Hierarchy**: `DomainException` base with error code, caught by `GlobalExceptionHandler`
 
 ## Technology Stack
 
-- **Framework**: Spring Boot 3.2+
-- **Database**: PostgreSQL with Spring Data JPA
-- **Messaging**: Apache Kafka or RabbitMQ
-- **Cache**: Redis for distributed caching
-- **Search**: Elasticsearch
-- **API**: REST and/or GraphQL
-- **Security**: Spring Security + JWT + OAuth2
-- **Documentation**: SpringDoc OpenAPI (Swagger)
-- **Monitoring**: Prometheus + Grafana
-- **Tracing**: OpenTelemetry + Jaeger
-- **Containerization**: Docker + Kubernetes
+- **Runtime**: Java 17, Spring Boot 3.2.5
+- **Database**: PostgreSQL (prod) / H2 (test), Spring Data JPA, Hibernate
+- **Messaging**: Apache Kafka (spring-kafka)
+- **Build**: Maven multi-module
+- **API Docs**: SpringDoc OpenAPI (Swagger UI per module)
+- **Testing**: JUnit 5, Mockito, AssertJ, Cucumber BDD, MockMvc
 
 ## Build and Test Commands
-
-*Note: These commands assume Maven multi-module project structure will be created*
 
 ```bash
 # Build all modules
@@ -86,258 +75,99 @@ mvn clean install
 # Build specific module
 cd library-catalog && mvn clean install
 
-# Run tests
+# Run all tests
 mvn test
 
 # Run tests for specific module
-cd library-catalog && mvn test
+cd library-circulation && mvn test
 
 # Run specific test class
-mvn test -Dtest=BookServiceTest
+mvn test -Dtest=LoanTest
 
 # Run specific test method
-mvn test -Dtest=BookServiceTest#testCreateBook
+mvn test -Dtest=LoanTest#testCheckout
 
-# Skip tests during build
+# Skip tests
 mvn clean install -DskipTests
 
-# Run Spring Boot application
+# Run application (per module)
 cd library-catalog && mvn spring-boot:run
-
-# Package for deployment
-mvn clean package
-
-# Generate API documentation (SpringDoc)
-# Access at http://localhost:8080/swagger-ui.html when running
 ```
-
-## Key Design Decisions (See Architecture_Design/11-架构决策记录ADR.md)
-
-- **ADR-001**: Event Sourcing architecture chosen for audit trail and state reconstruction
-- **ADR-002**: CQRS pattern for read/write separation and query optimization
-- **ADR-003**: Saga pattern for distributed transaction management
-- **ADR-004**: Kafka/RabbitMQ as message middleware for event-driven communication
-- **ADR-005**: Multi-level caching strategy (local cache + Redis) for performance
-
-## Important Code Patterns
-
-### Aggregate Root Pattern
-
-```java
-@Entity
-@Table(name = "books")
-public class Book {
-
-    @EmbeddedId
-    private BookId id;
-
-    @Version
-    private Long version; // Optimistic locking
-
-    @CreatedDate
-    @Column(name = "created_at", updatable = false)
-    private LocalDateTime createdAt;
-
-    @LastModifiedDate
-    @Column(name = "updated_at")
-    private LocalDateTime updatedAt;
-}
-```
-
-### Repository Pattern
-
-```java
-// Domain layer - interface
-public interface BookRepository extends JpaRepository<Book, BookId>, CustomBookRepository {
-    @Query("SELECT b FROM Book b WHERE b.status = :status")
-    List<Book> findByStatus(@Param("status") BookStatus status);
-}
-
-// Infrastructure layer - implementation
-@Repository
-public class BookRepositoryImpl implements CustomBookRepository {
-    @PersistenceContext
-    private EntityManager entityManager;
-}
-```
-
-### Domain Event Publishing
-
-```java
-@Component
-public class DomainEventPublisher {
-    private final ApplicationEventPublisher eventPublisher;
-
-    public void publish(DomainEvent event) {
-        eventPublisher.publishEvent(event); // Same JVM
-        publishToMessageQueue(event);      // Cross-service
-    }
-}
-```
-
-### Transaction Management
-
-```java
-@Service
-@Transactional(readOnly = true)
-public class BookManagementService {
-
-    @Transactional
-    public Book createBook(CreateBookCommand command) {
-        // Write operations require explicit @Transactional
-    }
-
-    // Read-only methods inherit class-level @Transactional(readOnly = true)
-    public Book getBook(BookId bookId) { }
-}
-```
-
-### Configuration Properties
-
-```java
-@Configuration
-@ConfigurationProperties(prefix = "library")
-@Data
-public class LibraryProperties {
-    private int maxBooksPerPatron = 5;
-    private int loanPeriodDays = 30;
-    private BigDecimal dailyFineRate = new BigDecimal("0.50");
-}
-```
-
-## Testing Strategy
-
-- **Unit Tests**: Individual domain logic, services
-- **Integration Tests**: Repository operations, API endpoints
-- **Functional Tests**: Cucumber BDD tests covering main positive (happy path) flows only
-- **Test Plan**:  refer to Architecture_Design/15-TESTPLAN.md for the testplan of Functional Test and Integration Test
-- **80%+ Coverage Required** (per user rules)
-- **TDD Approach**: Write tests first, implement to pass tests (per `~/.claude/rules/common/testing.md`)
-
-### Functional Testing with Cucumber
-
-Use Cucumber for BDD-style functional tests. Scope to **main positive flows for each component only** — edge cases and error paths belong in unit tests.
-
-```gherkin
-# Example: Borrowing a book (happy path)
-Feature: Book Borrowing
-  Scenario: Patron successfully borrows an available book
-    Given a patron with valid membership
-    And a book copy is available
-    When the patron borrows the book
-    Then the book status changes to "borrowed"
-    And the patron's borrowed count increases by 1
-```
-Dependencies: `io.cucumber:cucumber-java`, `io.cucumber:cucumber-spring`, `io.cucumber:cucumber-junit-platform-engine`
-
-Test configuration:
-
-```java
-@SpringBootTest
-@AutoConfigureMockMvc
-@Transactional
-public abstract class BaseControllerTest {
-    @Autowired protected MockMvc mockMvc;
-    @Autowired protected ObjectMapper objectMapper;
-}
-```
-
-## Documentation References
-
-All architecture and design documents are in `Architecture_Design/`:
-
-- `企业级图书馆管理系统-DDD架构设计文档.md` - Overall architecture overview
-- `01-详细设计计划.md` - Design task breakdown
-- `02-08` - Individual bounded context designs
-- `09-领域模型总体设计.md` - Overall domain model
-- `10-Spring实现指南.md` - Spring Boot implementation guide with code examples
-- `11-架构决策记录ADR.md` - Architecture decision records
-- `12-业务流程可视化.md` - Business flow diagrams
-- `13-部署架构和扩展设计.md` - Deployment architecture
-- `14-实现最佳实践指南.md` - Implementation best practices
-
-**When implementing features**, always reference the corresponding context design document and the Spring implementation guide.
 
 ## Development Progress
 
-**Detailed Development Plan**: See `DEVELOPMENT_PLAN.md` for complete step-by-step development roadmap.
+**Plan**: See `DEVELOPMENT_PLAN.md` for detailed task breakdown with acceptance criteria.
+**Design Docs**: See `Architecture_Design/` for bounded context designs (02-08), Spring guide (10), test plan (15).
 
+### How to Continue
 
-### How to Continue Development
+1. Open `DEVELOPMENT_PLAN.md`, find next unchecked task
+2. Read the corresponding design doc in `Architecture_Design/`
+3. Reference `10-Spring实现指南.md` for Spring patterns
+4. Follow TDD: write test first, implement, verify 80%+ coverage
+5. Check off acceptance criteria in the plan
 
-When starting or resuming development:
+### Current Status
 
-1. **Open** `DEVELOPMENT_PLAN.md`
-2. **Find** last completed task (look for checked `[ ]` items)
-3. **Execute** the next unchecked task following the plan
-4. **Verify** all acceptance criteria before marking complete
-5. **Update** the plan by checking `[ ]` boxes as you complete tasks
+| Stage | Context | Status | Tests |
+|-------|---------|--------|-------|
+| 1 | Project Initialization | **Complete** | - |
+| 2 | Catalog Context | **Complete** | ~91+ (unit + integration + 4 BDD features) |
+| 3 | Inventory Context | **Complete** | 65 (55 unit + 7 integration + 3 BDD features) |
+| 4 | Circulation Context | **Complete** | ~62 (54 domain + 5 integration + 1 BDD feature) |
+| 5 | Patron Context | **Complete** | 156 (142 unit + 13 integration + 1 BDD feature) |
+| 6 | Payment Context | **Next** | 0 |
+| 7 | Analytics Context | Not started | 0 |
+| 8 | Notification Context | Not started | 0 |
+| 9 | Shared Module | **~70%** | 16 (IDs + events; missing: Money, Email, Address value objects) |
+| 10 | Cross-Context Integration | Not started | 0 |
 
-### Current Development Status
+**Next Task**: Stage 6 - Payment Context, starting with Task 6.1.1 (Payment聚合根).
+Reference: `Architecture_Design/06-支付上下文详细设计.md`
 
-The system is in **implementation phase** - Catalog Context (Stage 1) and Inventory Context (Stage 2) are complete.
+### Shared Module (library-shared)
 
-**Completed**:
-- Project initialization (Stage 1)
-- Catalog Context - full DDD layers (domain, application, infrastructure, interface)
-- Inventory Context - full DDD layers (domain, application, infrastructure, interface)
-- Shared module (domain events, aggregate IDs: BookId, AuthorId, PublisherId, CategoryId, LibraryId, CopyId, CopyInventoryId)
+Already implemented:
+- `AggregateId` base class + 11 ID types: BookId, AuthorId, PublisherId, CategoryId, LibraryId, CopyId, CopyInventoryId, LoanId, HoldId, FineId, PatronId
+- `DomainEvent` base class + `DomainEventPublisher` interface
 
-**Next Step**: Continue with Circulation Context (Stage 3):
-1. Task 4.1.1: Fine值对象
-2. Task 4.1.2: CirculationPolicy值对象
-3. Task 4.1.3: Loan聚合根
-4. Task 4.1.4: Hold聚合根
-5. Task 4.2.x: Circulation仓储和服务
-
-### Development Stages Overview
-
-| Stage | Context | Status | Time Estimate |
-|-------|----------|--------|---------------|
-| 1 | Project Initialization | **Complete** | 2 hours |
-| 2 | Catalog Context | **Complete** | 50 hours |
-| 3 | Inventory Context | **Complete** | 20 hours |
-| 4 | Circulation Context | Not Started | 25 hours |
-| 5 | Patron Context | Not Started | 14 hours |
-| 6 | Payment Context | Not Started | 14 hours |
-| 7 | Analytics Context | Not Started | 10 hours |
-| 8 | Notification Context | Not Started | 12 hours |
-| 9 | Shared Module | **~70% Done** | 6 hours |
-| 10 | Cross-Context Integration | Not Started | 22 hours |
-
-**Total Estimated Time**: ~213 hours (5-6 weeks full-time)
+Not yet implemented:
+- Value objects: Money, Email, PhoneNumber, Address
+- Utility classes
 
 ## Development Workflow
 
-1. **Before coding**: Read the relevant bounded context design document (02-08) in `Architecture_Design/`
-2. **For Spring specifics**: Reference `10-Spring实现指南.md` for patterns and examples
-3. **Follow DDD layering**: Respect domain/application/infrastructure/interfaces boundaries
-4. **Use TDD**: Write tests first, implement to pass tests (80%+ coverage required)
-   - Use **tdd-guide** agent
-   - Write tests first (RED)
-   - Implement to pass tests (GREEN)
-   - Refactor (IMPROVE)
-   - Verify 80%+ coverage
-5. **Event-driven**: Use domain events for cross-context communication
-6. **Transaction boundaries**: Use `@Transactional` appropriately, read-only for queries
-7. **Versioning**: All aggregates must have `@Version` for optimistic locking
-8. **Audit fields**: Include `created_at`, `updated_at`, `created_by`, `updated_by` where applicable
-9. **Code Review**
-   - Use **code-reviewer** agent immediately after writing code
-   - Address CRITICAL and HIGH issues
-   - Fix MEDIUM issues when possible
-10. **Commit & Push**
-   - Detailed commit messages
-   - Follow conventional commits format
-   - See [git-workflow.md](~/.claude/rules/common/git-workflow.md) for commit message format and PR process
+1. **Before coding**: Read relevant design doc (02-08) in `Architecture_Design/`
+2. **DDD layering**: Respect domain/application/infrastructure/interfaces boundaries
+3. **TDD**: Write tests first (RED) -> implement (GREEN) -> refactor (IMPROVE), 80%+ coverage
+4. **Domain events**: Publish for all state-changing operations
+5. **Transactions**: `@Transactional(readOnly = true)` on services, `@Transactional` on writes
+6. **Optimistic locking**: All aggregates must have `@Version`
+7. **Audit fields**: `created_at`, `updated_at` on all entities
+8. **Code review**: Use code-reviewer agent after writing code
+9. **Progress**: Update DEVELOPMENT_PLAN.md checkboxes; save summary in `Progress/`
 
-## Security Guidelines
+## Testing Strategy
 
-- No hardcoded secrets in code (use environment variables)
-- All user inputs validated at system boundaries
-- Parameterized queries for SQL injection prevention
-- XSS prevention in user-facing code
-- CSRF protection enabled
-- Proper authentication/authorization checks
+- **Unit Tests**: Domain models, services, value objects (JUnit 5 + Mockito + AssertJ)
+- **Integration Tests**: API endpoints with MockMvc + H2 (`@SpringBootTest`)
+- **Functional Tests (Cucumber BDD)**: Happy path flows only; edge cases in unit tests
+- **Test Plan**: See `Architecture_Design/15-TESTPLAN.md`
+- **Coverage**: 80%+ required
+- **Cucumber deps**: `cucumber-java`, `cucumber-spring`, `cucumber-junit-platform-engine`
 
-**Before ANY commit**, run through the security checklist in `~/.claude/rules/common/security.md`.
+## Infrastructure
+
+PostgreSQL, Redis, Kafka are running locally.
+
+| Parameter | Value |
+|-----------|-------|
+| PostgreSQL | `postgres` / port `5432` |
+| Redis | port `6379` |
+| Kafka (host) | port `29092` |
+| Kafka (container) | port `9092` |
+| Kafka UI | `http://localhost:9000` |
+
+Credentials are in environment variables, not hardcoded in source.
+
+---

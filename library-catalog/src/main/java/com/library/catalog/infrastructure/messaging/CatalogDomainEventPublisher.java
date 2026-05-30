@@ -4,6 +4,7 @@ import com.library.shared.domain.event.DomainEvent;
 import com.library.shared.domain.event.DomainEventPublisher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
 
@@ -12,6 +13,7 @@ import java.util.List;
 /**
  * Catalog-specific domain event publisher that publishes events
  * both locally via Spring ApplicationEventPublisher and remotely via Kafka.
+ * KafkaTemplate is optional — if unavailable (e.g. in tests), only local publishing is used.
  */
 @Component("catalogDomainEventPublisher")
 public class CatalogDomainEventPublisher {
@@ -24,10 +26,10 @@ public class CatalogDomainEventPublisher {
 
     public CatalogDomainEventPublisher(
             DomainEventPublisher localPublisher,
-            KafkaTemplate<String, DomainEvent> kafkaTemplate,
+            ObjectProvider<KafkaTemplate<String, DomainEvent>> kafkaTemplateProvider,
             org.springframework.core.env.Environment environment) {
         this.localPublisher = localPublisher;
-        this.kafkaTemplate = kafkaTemplate;
+        this.kafkaTemplate = kafkaTemplateProvider.getIfAvailable();
         this.topicName = environment.getProperty(
             "spring.kafka.topic.domain-events", "library.domain-events");
     }
@@ -36,7 +38,13 @@ public class CatalogDomainEventPublisher {
         // Publish locally for in-process event handling
         localPublisher.publish(event);
 
-        // Publish to Kafka for cross-service communication
+        // Publish to Kafka for cross-service communication (skip if Kafka unavailable)
+        if (kafkaTemplate == null) {
+            log.debug("KafkaTemplate not available, skipping Kafka publish for event {}",
+                event.getEventType());
+            return;
+        }
+
         try {
             kafkaTemplate.send(topicName, event.getEventId(), event)
                 .whenComplete((result, ex) -> {

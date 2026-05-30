@@ -6,6 +6,7 @@ import com.library.catalog.domain.model.enums.AuthorRole;
 import com.library.catalog.domain.model.enums.BookStatus;
 import com.library.catalog.domain.repository.AuthorRepository;
 import com.library.catalog.domain.repository.BookRepository;
+import com.library.catalog.infrastructure.messaging.CatalogDomainEventPublisher;
 import com.library.shared.domain.model.AuthorId;
 import com.library.shared.domain.model.BookId;
 import org.junit.jupiter.api.*;
@@ -28,6 +29,9 @@ class BookManagementServiceTest {
 
     @Mock
     private AuthorRepository authorRepository;
+
+    @Mock
+    private CatalogDomainEventPublisher eventPublisher;
 
     @InjectMocks
     private BookManagementService service;

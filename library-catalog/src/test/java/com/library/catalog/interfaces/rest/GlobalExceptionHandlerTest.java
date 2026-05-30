@@ -137,7 +137,7 @@ class GlobalExceptionHandlerTest {
             assertThat(response.getBody()).isNotNull();
             assertThat(response.getBody().success()).isFalse();
             assertThat(response.getBody().data()).isNull();
-            assertThat(response.getBody().errorCode()).isEqualTo("INVALIDOPERATION");
+            assertThat(response.getBody().errorCode()).isEqualTo("INVALID_OPERATION");
             assertThat(response.getBody().error()).isEqualTo("Cannot delete a published book");
         }
 
@@ -149,7 +149,7 @@ class GlobalExceptionHandlerTest {
 
             assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
             assertThat(response.getBody()).isNotNull();
-            assertThat(response.getBody().errorCode()).isEqualTo("INVALIDISBN");
+            assertThat(response.getBody().errorCode()).isEqualTo("INVALID_ISBN");
             assertThat(response.getBody().error()).isEqualTo("Invalid ISBN format");
         }
     }

@@ -94,4 +94,35 @@ public class BookController {
         Page<BookDTO> results = bookApplicationService.searchBooks(criteria, pageable);
         return ResponseEntity.ok(ApiResponse.ok(results));
     }
+
+    @PostMapping("/{id}/authors")
+    @Operation(summary = "Add author to book")
+    public ResponseEntity<ApiResponse<BookDTO>> addAuthor(
+            @PathVariable String id, @RequestParam String authorId, @RequestParam(defaultValue = "AUTHOR") String role) {
+        return ResponseEntity.ok(ApiResponse.ok(bookApplicationService.addAuthor(id, authorId, role)));
+    }
+
+    @DeleteMapping("/{id}/authors/{authorId}")
+    @Operation(summary = "Remove author from book")
+    public ResponseEntity<ApiResponse<BookDTO>> removeAuthor(@PathVariable String id, @PathVariable String authorId) {
+        return ResponseEntity.ok(ApiResponse.ok(bookApplicationService.removeAuthor(id, authorId)));
+    }
+
+    @PutMapping("/{id}/publisher")
+    @Operation(summary = "Set book publisher")
+    public ResponseEntity<ApiResponse<BookDTO>> setPublisher(@PathVariable String id, @RequestParam String publisherId) {
+        return ResponseEntity.ok(ApiResponse.ok(bookApplicationService.setPublisher(id, publisherId)));
+    }
+
+    @PostMapping("/{id}/categories")
+    @Operation(summary = "Add category to book")
+    public ResponseEntity<ApiResponse<BookDTO>> addCategory(@PathVariable String id, @RequestParam String categoryId) {
+        return ResponseEntity.ok(ApiResponse.ok(bookApplicationService.addCategory(id, categoryId)));
+    }
+
+    @DeleteMapping("/{id}/categories/{categoryId}")
+    @Operation(summary = "Remove category from book")
+    public ResponseEntity<ApiResponse<BookDTO>> removeCategory(@PathVariable String id, @PathVariable String categoryId) {
+        return ResponseEntity.ok(ApiResponse.ok(bookApplicationService.removeCategory(id, categoryId)));
+    }
 }

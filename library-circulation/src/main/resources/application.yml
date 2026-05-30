@@ -6,12 +6,12 @@ spring:
     name: library-circulation
   datasource:
     url: jdbc:postgresql://localhost:5432/library_circulation
-    username: ${DB_USERNAME:postgres}
-    password: ${DB_PASSWORD:postgres}
+    username: postgres
+    password: dev_pg_2026
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
-      ddl-auto: validate
+      ddl-auto: update
     show-sql: false
     open-in-view: false
     properties:

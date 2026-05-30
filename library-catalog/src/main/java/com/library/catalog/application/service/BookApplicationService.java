@@ -6,8 +6,10 @@ import com.library.catalog.application.dto.BookDTO;
 import com.library.catalog.application.query.BookSearchCriteria;
 import com.library.catalog.domain.model.Book;
 import com.library.catalog.domain.model.ISBN;
+import com.library.catalog.domain.model.enums.AuthorRole;
 import com.library.catalog.domain.repository.BookRepository;
 import com.library.catalog.domain.service.BookManagementService;
+import com.library.shared.domain.model.AuthorId;
 import com.library.shared.domain.model.BookId;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -82,5 +84,36 @@ public class BookApplicationService {
     public Page<BookDTO> searchBooks(BookSearchCriteria criteria, Pageable pageable) {
         Page<Book> books = bookRepository.search(criteria, pageable);
         return books.map(BookDTO::from);
+    }
+
+    @Transactional
+    public BookDTO addAuthor(String bookId, String authorId, String role) {
+        Book book = bookManagementService.addAuthorToBook(
+            BookId.of(bookId), authorId, AuthorRole.valueOf(role));
+        return BookDTO.from(book);
+    }
+
+    @Transactional
+    public BookDTO removeAuthor(String bookId, String authorId) {
+        Book book = bookManagementService.removeAuthorFromBook(BookId.of(bookId), authorId);
+        return BookDTO.from(book);
+    }
+
+    @Transactional
+    public BookDTO setPublisher(String bookId, String publisherId) {
+        Book book = bookManagementService.setPublisher(BookId.of(bookId), publisherId);
+        return BookDTO.from(book);
+    }
+
+    @Transactional
+    public BookDTO addCategory(String bookId, String categoryId) {
+        Book book = bookManagementService.addCategory(BookId.of(bookId), categoryId);
+        return BookDTO.from(book);
+    }
+
+    @Transactional
+    public BookDTO removeCategory(String bookId, String categoryId) {
+        Book book = bookManagementService.removeCategory(BookId.of(bookId), categoryId);
+        return BookDTO.from(book);
     }
 }
