@@ -95,7 +95,7 @@ class NotificationTest {
         void shouldRejectNullChannel() {
             assertThatThrownBy(() -> Notification.create(TYPE, null, RECIPIENT_ID, SUBJECT, CONTENT))
                 .isInstanceOf(NullPointerException.class)
-                .hasMessageContaining("Channel must not be null");
+                .hasMessageContaining("Notification channel must not be null");
         }
 
         @Test
@@ -487,7 +487,7 @@ class NotificationTest {
 
             assertThatThrownBy(() -> notification.cancel("reason"))
                 .isInstanceOf(InvalidOperationException.class)
-                .hasMessageContaining("Cannot cancel notification in status: DELIVERED");
+                .hasMessageContaining("Cannot cancel a notification in terminal state: DELIVERED");
         }
 
         @Test
@@ -497,7 +497,7 @@ class NotificationTest {
 
             assertThatThrownBy(() -> notification.cancel("reason"))
                 .isInstanceOf(InvalidOperationException.class)
-                .hasMessageContaining("Cannot cancel notification in status: READ");
+                .hasMessageContaining("Cannot cancel a notification in terminal state: READ");
         }
 
         @Test

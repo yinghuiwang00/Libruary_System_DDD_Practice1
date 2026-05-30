@@ -11,10 +11,15 @@
 - [3. 领域模型（ID 值对象）](#3-领域模型id-值对象)
   - [3.1 AggregateId —— 抽象基类](#31-aggregateid--抽象基类)
   - [3.2 具体 ID 类型](#32-具体-id-类型)
-- [4. 领域事件（基类与发布器）](#4-领域事件基类与发布器)
-  - [4.1 DomainEvent —— 领域事件基类](#41-domainevent--领域事件基类)
-  - [4.2 DomainEventPublisher —— 领域事件发布器](#42-domaineventpublisher--领域事件发布器)
-- [5. 文件清单速查表](#5-文件清单速查表)
+- [4. 领域模型（通用值对象）](#4-领域模型通用值对象)
+  - [4.1 Money —— 金额值对象](#41-money--金额值对象)
+  - [4.2 Email —— 邮箱值对象](#42-email--邮箱值对象)
+  - [4.3 PhoneNumber —— 电话号码值对象](#43-phonenumber--电话号码值对象)
+  - [4.4 Address —— 地址值对象](#44-address--地址值对象)
+- [5. 领域事件（基类与发布器）](#5-领域事件基类与发布器)
+  - [5.1 DomainEvent —— 领域事件基类](#51-domainevent--领域事件基类)
+  - [5.2 DomainEventPublisher —— 领域事件发布器](#52-domaineventpublisher--领域事件发布器)
+- [6. 文件清单速查表](#6-文件清单速查表)
 
 ---
 
@@ -25,9 +30,10 @@
 | 职责 | 说明 |
 |------|------|
 | 强类型 ID | 为每个聚合根定义唯一的标识类型（BookId、AuthorId、LoanId 等） |
+| 通用值对象 | Money、Email、PhoneNumber、Address 等跨上下文共享的值对象 |
 | 领域事件基类 | 所有上下文的领域事件统一继承 `DomainEvent`，保证事件元数据一致性 |
 | 事件发布器 | 封装 Spring `ApplicationEventPublisher`，简化领域事件发布 |
-| 跨上下文契约 | ID 类型和事件基类是各上下文之间通信的"公共语言" |
+| 跨上下文契约 | ID 类型、值对象和事件基类是各上下文之间通信的"公共语言" |
 
 **不含**：业务逻辑、REST 控制器、数据库访问、Spring Boot 启动类。本模块是纯粹的共享领域概念，不独立运行。
 
@@ -205,11 +211,179 @@ public class BookId extends AggregateId {
 
 ---
 
-## 4. 领域事件（基类与发布器）
+## 4. 领域模型（通用值对象）
+
+> 通用值对象位于 `com.library.shared.domain.model` 包下，与 ID 值对象同包。它们封装了多个限界上下文共享的业务概念，确保验证逻辑和业务规则的一致性。
+
+### 4.1 Money —— 金额值对象
+
+**DDD 角色**：**值对象（Value Object）**
+
+```java
+@Embeddable
+public class Money implements Comparable<Money> {
+    @Column(name = "amount", precision = 15, scale = 2)
+    private BigDecimal amount;
+    @Column(name = "currency", length = 3)
+    private String currency;
+
+    public Money(BigDecimal amount, String currency) { ... }
+    public Money(BigDecimal amount) { this(amount, "CNY"); }  // 默认人民币
+
+    // 运算（返回新实例，不可变）
+    public Money add(Money other) { ... }
+    public Money subtract(Money other) { ... }
+    public Money multiply(int factor) { ... }
+    public Money negate() { ... }
+
+    // 比较
+    public boolean isPositive() { ... }
+    public boolean isNegative() { ... }
+    public boolean isZero() { ... }
+    public boolean isGreaterThan(Money other) { ... }
+}
+```
+
+**设计要点：**
+
+| 设计点 | 实现方式 | DDD 意义 |
+|--------|----------|----------|
+| `@Embeddable` | JPA 可嵌入对象 | 金额作为值对象嵌入聚合根（如 Payment 的 amount 字段） |
+| 不可变 | 所有运算返回新 `Money` 实例 | 值对象的核心特性——相等性由属性决定，不可修改 |
+| 货币类型 | `currency` 字段（3 字母 ISO 代码） | 防止不同货币的金额混淆运算 |
+| `BigDecimal` | 精确小数运算 | 避免浮点数精度丢失，金额计算必须精确 |
+| 默认 CNY | 人民币为默认货币 | 项目场景是中国图书馆系统 |
+| 跨货币保护 | `add()`/`subtract()` 检查货币一致性 | 防止 CNY + USD 这样的非法运算 |
+
+**使用场景**：Payment 上下文的支付金额、Patron 上下文的罚金、Analytics 上下文的财务报表。
+
+---
+
+### 4.2 Email —— 邮箱值对象
+
+**DDD 角色**：**值对象（Value Object）**
+
+```java
+@Embeddable
+public class Email {
+    @Column(name = "email", length = 200)
+    private String value;
+
+    public Email(String value) {
+        String normalized = value.trim().toLowerCase();  // 自动规范化
+        // 正则验证格式...
+        this.value = normalized;
+    }
+
+    public String getDomain() { ... }      // 提取域名
+    public String getLocalPart() { ... }   // 提取本地部分
+}
+```
+
+**设计要点：**
+
+| 设计点 | 实现方式 | DDD 意义 |
+|--------|----------|----------|
+| 自动规范化 | `trim()` + `toLowerCase()` | 两个语义相同的邮箱（`User@Example.COM` 和 `user@example.com`）被视为相等 |
+| 格式验证 | 正则表达式 `^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$` | 确保进入系统的邮箱都是合法的 |
+| `equals` 基于值 | `value` 字段 | 值对象相等性——`Email("A@B.COM") == Email("a@b.com")` |
+| 零依赖 | 不依赖外部邮箱验证 API | 共享内核必须精简，不做外部调用 |
+
+**使用场景**：Patron 上下文的会员邮箱、Notification 上下文的收件人邮箱。
+
+---
+
+### 4.3 PhoneNumber —— 电话号码值对象
+
+**DDD 角色**：**值对象（Value Object）**
+
+```java
+@Embeddable
+public class PhoneNumber {
+    @Column(name = "phone", length = 20)
+    private String value;
+
+    public PhoneNumber(String value) {
+        String digits = value.replaceAll("[\\s\\-()]", "");  // 去除格式符号
+        // 验证 7-15 位数字，可选 + 前缀...
+        this.value = digits;
+    }
+
+    public boolean isInternational() { return value.startsWith("+"); }
+}
+```
+
+**设计要点：**
+
+| 设计点 | 实现方式 | DDD 意义 |
+|--------|----------|----------|
+| 格式剥离 | 去除空格、横线、括号 | `138-0013-8000` 和 `13800138000` 被视为相同号码 |
+| 国际号码支持 | `+` 前缀，7-15 位数字 | 兼容 `+8613800138000` 等国际格式 |
+| 国内号码 | 纯数字 7-15 位 | 兼容 `13800138000`、`01012345678` 等 |
+
+**使用场景**：Patron 上下文的会员电话、Notification 上下文的 SMS 收件人。
+
+---
+
+### 4.4 Address —— 地址值对象
+
+**DDD 角色**：**值对象（Value Object）**
+
+```java
+@Embeddable
+public class Address {
+    @Column(name = "street", length = 300)   private String street;
+    @Column(name = "city", length = 100)     private String city;        // 必填
+    @Column(name = "postal_code", length = 20) private String postalCode;
+    @Column(name = "state", length = 100)    private String state;
+    @Column(name = "country", length = 100)  private String country;    // 默认 "China"
+
+    public Address(String street, String city, String postalCode, String state, String country) { ... }
+    public String getFullAddress() { ... }  // 拼接完整地址字符串
+}
+```
+
+**设计要点：**
+
+| 设计点 | 实现方式 | DDD 意义 |
+|--------|----------|----------|
+| city 必填 | `Objects.requireNonNull` | 地址至少需要城市信息 |
+| 其他字段可选 | street/postalCode/state 可为 null | 地址的详细程度因场景而异 |
+| 默认 country | "China" | 项目场景是中国图书馆系统 |
+| `getFullAddress()` | 智能拼接，跳过 null 字段 | 方便显示和日志 |
+| 自动 trim | 所有字符串字段去除首尾空格 | 数据规范化 |
+
+**使用场景**：Patron 上下文的会员地址、Inventory 上下文的图书馆/分馆地址。
+
+---
+
+### 通用值对象的 DDD 意义
+
+将 Money、Email、PhoneNumber、Address 定义在共享模块而非各上下文内部，遵循以下 DDD 原则：
+
+1. **消除重复**：Patron、Notification、Payment 等多个上下文都需要邮箱概念，共享一处定义避免验证逻辑不一致
+2. **类型安全**：`Email email` 比 `String email` 更安全——编译器阻止传入任意字符串
+3. **不变性（Immutability）**：所有值对象都是不可变的，符合 DDD 值对象的定义
+4. **自验证（Self-validating）**：构造器中验证格式，确保系统中的值对象始终处于合法状态
+5. **`@Embeddable`**：作为 JPA 嵌入对象，不创建独立的数据库表，直接嵌入聚合根的表中
+
+```
+library-patron                          library-notification
+  │                                        │
+  │  Email (shared)                        │  Email (shared)
+  │  ───→ "user@example.com"               │  ───→ "user@example.com"
+  │  patron.email                          │  notification.recipientEmail
+  │                                        │
+  │  验证逻辑一致 ✓                         │  验证逻辑一致 ✓
+```
+
+---
+
+## 5. 领域事件（基类与发布器）
 
 > 领域事件相关的代码位于 `com.library.shared.domain.event` 包下。
 
-### 4.1 DomainEvent —— 领域事件基类
+### 5.1 DomainEvent —— 领域事件基类
 
 **DDD 角色**：**领域事件（Domain Event）基类**
 
@@ -265,7 +439,7 @@ library-catalog                        library-inventory
 
 ---
 
-### 4.2 DomainEventPublisher —— 领域事件发布器
+### 5.2 DomainEventPublisher —— 领域事件发布器
 
 **DDD 角色**：**领域事件发布服务（Domain Event Publisher）**
 
@@ -322,7 +496,7 @@ public class BookManagementService {
 
 ---
 
-## 5. 文件清单速查表
+## 6. 文件清单速查表
 
 | # | 文件路径 | DDD 角色 | 核心职责 |
 |---|---------|----------|----------|
@@ -345,16 +519,20 @@ public class BookManagementService {
 | 17 | `domain/model/ReportId.java` | 值对象 | 报表标识 |
 | 18 | `domain/event/DomainEvent.java` | **领域事件基类** | 事件元数据（eventId、occurredAt、eventType、version） |
 | 19 | `domain/event/DomainEventPublisher.java` | **事件发布服务** | 封装 Spring 事件发布，统一发布机制 |
+| 20 | `domain/model/Money.java` | **值对象** | 金额（amount + currency），不可变，含算术和比较运算 |
+| 21 | `domain/model/Email.java` | **值对象** | 邮箱（验证 + normalize + toLowerCase） |
+| 22 | `domain/model/PhoneNumber.java` | **值对象** | 电话号码（格式剥离 + 国际号码支持） |
+| 23 | `domain/model/Address.java` | **值对象** | 地址（street/city/postalCode/state/country） |
 
-**总计：19 个源文件**
+**总计：23 个源文件**
 
 **包结构总览：**
 
 ```
 library-shared/src/main/java/com/library/shared/
 └── domain/
-    ├── model/                              ← 领域模型（ID 值对象）
-    │   ├── AggregateId.java                ← 抽象基类
+    ├── model/                              ← 领域模型（ID 值对象 + 通用值对象）
+    │   ├── AggregateId.java                ← ID 抽象基类
     │   ├── BookId.java                     ← 以下 16 个具体 ID 类型
     │   ├── AuthorId.java
     │   ├── PublisherId.java
@@ -371,6 +549,10 @@ library-shared/src/main/java/com/library/shared/
     │   ├── NotificationId.java
     │   ├── DashboardId.java
     │   └── ReportId.java
+    │   ├── Money.java                      ← 金额值对象（BigDecimal + currency）
+    │   ├── Email.java                      ← 邮箱值对象（验证 + 规范化）
+    │   ├── PhoneNumber.java                ← 电话号码值对象（格式验证）
+    │   └── Address.java                    ← 地址值对象（street/city/postalCode）
     └── event/                              ← 领域事件
         ├── DomainEvent.java                ← 事件基类
         └── DomainEventPublisher.java       ← 事件发布器

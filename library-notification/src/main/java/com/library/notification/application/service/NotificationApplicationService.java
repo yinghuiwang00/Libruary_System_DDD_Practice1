@@ -31,13 +31,8 @@ public class NotificationApplicationService {
             NotificationType.valueOf(command.getNotificationType()),
             NotificationChannel.valueOf(command.getChannel()),
             command.getRecipientId(),
-            command.getRecipientEmail(),
-            command.getRecipientPhone(),
             command.getSubject(),
-            command.getContent(),
-            command.getPriority() != null
-                ? NotificationPriority.valueOf(command.getPriority())
-                : NotificationPriority.NORMAL
+            command.getContent()
         );
         return NotificationDTO.from(notification);
     }
