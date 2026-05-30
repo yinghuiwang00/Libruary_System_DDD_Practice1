@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Enterprise Library Management System built with Domain-Driven Design (DDD) principles.
 
-**Status:** Implementation phase - 4 of 7 bounded contexts complete, Payment Context next
+**Status:** Implementation phase - 6 of 7 bounded contexts complete, Notification Context next
 
 ## Architecture
 
@@ -116,19 +116,19 @@ cd library-catalog && mvn spring-boot:run
 | 3 | Inventory Context | **Complete** | 65 (55 unit + 7 integration + 3 BDD features) |
 | 4 | Circulation Context | **Complete** | ~62 (54 domain + 5 integration + 1 BDD feature) |
 | 5 | Patron Context | **Complete** | 156 (142 unit + 13 integration + 1 BDD feature) |
-| 6 | Payment Context | **Next** | 0 |
-| 7 | Analytics Context | Not started | 0 |
-| 8 | Notification Context | Not started | 0 |
+| 6 | Payment Context | **Complete** | 138 (92 unit + 33 service + 13 integration + 1 BDD feature) |
+| 7 | Analytics Context | **Complete** | 133 (71 unit + 26 service + 19 integration + 6 BDD scenarios) |
+| 8 | Notification Context | **Next** | 0 |
 | 9 | Shared Module | **~70%** | 16 (IDs + events; missing: Money, Email, Address value objects) |
 | 10 | Cross-Context Integration | Not started | 0 |
 
-**Next Task**: Stage 6 - Payment Context, starting with Task 6.1.1 (Payment聚合根).
-Reference: `Architecture_Design/06-支付上下文详细设计.md`
+**Next Task**: Stage 8 - Notification Context, starting with Task 8.1.1.
+Reference: `Architecture_Design/08-通知上下文详细设计.md`
 
 ### Shared Module (library-shared)
 
 Already implemented:
-- `AggregateId` base class + 11 ID types: BookId, AuthorId, PublisherId, CategoryId, LibraryId, CopyId, CopyInventoryId, LoanId, HoldId, FineId, PatronId
+- `AggregateId` base class + 15 ID types: BookId, AuthorId, PublisherId, CategoryId, LibraryId, CopyId, CopyInventoryId, LoanId, HoldId, FineId, PatronId, PaymentId, RefundId, ReportId, DashboardId
 - `DomainEvent` base class + `DomainEventPublisher` interface
 
 Not yet implemented:
