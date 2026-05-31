@@ -411,6 +411,100 @@
 
 ---
 
+## ADR-010: 跨上下文事件采用双发模式（Double Publishing）
+
+**状态**: 已实施
+**日期**: 2026-05-15
+**决策者**: 架构团队
+
+### 上下文和问题陈述
+限界上下文间需要通过领域事件进行通信。需要决定事件发布策略：仅本地、仅 Kafka、还是两者兼顾。
+
+### 决策描述
+采用双发模式（Double Publishing）：每个领域事件同时发布到 Spring ApplicationEventPublisher（本地同步）和 Kafka（跨上下文异步）。
+
+### 实施细节
+- 7 个 `*DomainEventPublisher` 实现（每上下文一个），统一继承 `@Component` + 命名 Bean
+- 使用 `ObjectProvider<KafkaTemplate<String, DomainEvent>>` 可选注入
+- Kafka 发送用 `try-catch` 包裹，`whenComplete` 异步回调
+- Topic 名称通过 `Environment.getProperty()` 配置化，默认值各异（如 `library.circulation.events`）
+- 共享基类 `DomainEventPublisher` 封装 Spring `ApplicationEventPublisher`
+
+### 后果
+- **正面**: 本地消费者始终能收到事件；Kafka 故障不影响单体内业务
+- **负面**: 事件可能被消费两次（本地+远程），消费者需幂等
+
+---
+
+## ADR-011: E2E 测试采用 Cucumber BDD + Embedded Kafka
+
+**状态**: 已实施
+**日期**: 2026-05-31
+**决策者**: 开发团队
+
+### 上下文和问题陈述
+需要验证 7 个限界上下文通过 Kafka 事件的端到端集成。选择何种测试方案？
+
+### 决策描述
+创建独立的 `library-integration-test` 模块，使用 Cucumber BDD + Spring Boot `@EmbeddedKafka` + H2 内存数据库。
+
+### 方案对比
+
+| 方案 | 描述 | 优劣 |
+|------|------|------|
+| 方案 A | 在各模块内测试 | 无法验证跨上下文 |
+| 方案 B | 合并单体应用测试 | 全量扫描有 Bean 冲突 |
+| **方案 C（选定）** | 独立测试模块 + 精确 ComponentScan | ✅ 避免冲突，BDD 可读性高 |
+
+### 实施细节
+- `IntegrationTestApplication` 通过精确 `@ComponentScan` 加载 7 个上下文
+- `@EmbeddedKafka` 注册 5 个 Topic
+- `CucumberSpringConfig` 作为 Cucumber-Spring 胶水类，`@Before` 中等待 Listener 分配 + 清理 DB
+- 7 个 Feature 文件，9 个 Scenario，8 个 Step Definition 类
+- 与 `library-e2e-test`（JUnit 5 直接测试）形成互补双保险
+
+### 后果
+- **正面**: 业务可读的 Gherkin 文档；与 JUnit 5 测试互补
+- **负面**: 测试模块启动慢（~60s 加载全部上下文）；每个 Scenario 需要 `@DirtiesContext`
+
+---
+
+## ADR-012: 跨上下文 ID 采用共享值对象
+
+**状态**: 已实施
+**日期**: 2026-05-10
+**决策者**: 架构团队
+
+### 上下文和问题陈述
+不同限界上下文需要引用同一实体（如 BookId），如何确保类型安全和跨上下文一致性？
+
+### 决策描述
+在 `library-shared` 模块定义 16 个 ID 值对象（`AggregateId` 基类 + `BookId`, `PatronId` 等），所有上下文共享。
+
+### 后果
+- **正面**: 编译期类型安全；`@EmbeddedId` 直接映射 JPA
+- **负面**: shared 模块变更影响所有上下文；需严格向后兼容
+
+---
+
+## ADR-013: 合并测试上下文使用精确 ComponentScan 而非 @SpringBootApplication 扫描
+
+**状态**: 已实施
+**日期**: 2026-05-20
+**决策者**: 开发团队
+
+### 上下文
+E2E 测试需要加载所有 7 个上下文到一个 Spring ApplicationContext。全量 `@ComponentScan` 导致 Bean 名称冲突（多个模块有同名 JpaConfig、GlobalExceptionHandler 等）。
+
+### 决策
+`IntegrationTestApplication` 使用精确列出的包路径，排除 `interfaces.rest` 和 `infrastructure.config`，手动提供必需 Bean（如 `CirculationPolicy`）。
+
+### 后果
+- 新增模块需手动更新扫描列表
+- 避免了 Bean 冲突和意外加载
+
+---
+
 ## 总结
 
 本文档记录了图书馆系统关键架构决策，包括：
@@ -421,12 +515,16 @@
 - 多级缓存策略
 - PostgreSQL数据库选择
 - Spring Boot框架选择
+- 跨上下文事件双发模式
+- E2E 测试 Cucumber BDD 方案
+- 跨上下文 ID 共享值对象
+- 合并测试上下文精确 ComponentScan
 
 每个决策都经过充分的技术和业务考量，为系统的成功实施提供了指导。
 
 ---
 
-**文档版本**: v1.0  
+**文档版本**: v2.0  
 **创建日期**: 2026-05-03  
-**最后更新**: 2026-05-03  
-**状态**: 初稿完成
+**最后更新**: 2026-05-31  
+**状态**: 已更新

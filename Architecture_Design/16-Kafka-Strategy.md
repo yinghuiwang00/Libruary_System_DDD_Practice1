@@ -96,11 +96,21 @@ Consumer → Handler (JsonNode) → DomainService → Repository
 - **测试链路**：直接调用 Handler.handle(jsonNode)，不经过 Kafka
 - **评价**：Handler 级别的业务场景验证，与 EmbeddedKafka 测试互补
 
-### 方案 C：端到端跨模块测试 — 0/~10 ❌
+### 方案 C-1：E2E JUnit5 测试 — 9/9 ✅
+
+- **位置**：`library-e2e-test/` 独立 Maven 模块
+- **工具**：`@SpringBootTest` + `@EmbeddedKafka` + `KafkaTemplate<String, String>` + Awaitility
+- **测试链路**：手动构建 JSON → KafkaTemplate.send() → @KafkaListener 消费 → Handler 处理 → 验证 DB 状态
+- **基础设施**：`BaseEndToEndTest` 提供 Kafka 生产者创建 + DB 全表清理 + JSON 构建辅助方法
+- **覆盖场景**：UC-1~UC-8 共 9 个测试方法全部通过
+
+### 方案 C-2：E2E Cucumber BDD 测试 — 9 scenarios ✅
 
 - **位置**：`library-integration-test/` 独立 Maven 模块
-- **当前状态**：仅空目录结构（且 `returnn/` 疑似拼写错误，应为 `return/`）
-- **设计意图**：启动多个上下文，从 API 调用触发 → Kafka 传播 → 验证多模块数据
+- **工具**：Cucumber 7.15 + `@EmbeddedKafka` + `@CucumberContextConfiguration`
+- **测试链路**：与 C-1 相同，但使用 Gherkin Given/When/Then 步骤定义
+- **基础设施**：`CucumberSpringConfig`（Spring+Kafka 胶水）+ `E2EScenarioState`（跨步骤状态）+ `SharedSteps`（公共步骤）
+- **覆盖场景**：7 个 Feature 文件，9 个 Scenario，8 个 Step Definition 类全部通过
 
 ---
 
@@ -190,11 +200,13 @@ Consumer 手动解析 `objectMapper.readTree(record.value())` + `event.get("even
 - Consumer 端做向后兼容的解析（只读取需要的字段，忽略未知字段）
 - 在 Consumer 中添加版本检查，记录不兼容的版本号
 
-#### 9. 完成方案 C 端到端测试
+#### 9. ~~完成方案 C 端到端测试~~ ✅ 已完成
 
-当前的 E2E 测试模块 (`library-integration-test/`) 是空的。跨模块协作是这个项目最核心的价值，没有 E2E 测试意味着：
-- 借书→库存→读者→通知 的完整链路从未被验证
-- 事件格式不匹配可能在部署后才发现
+E2E 测试已通过两个互补模块完整实现：
+- `library-e2e-test`（JUnit 5）：9 个测试，覆盖 UC-1~UC-8 所有跨上下文场景
+- `library-integration-test`（Cucumber BDD）：9 个 Scenario，7 个 Feature 文件
+
+两个模块均使用 `@EmbeddedKafka` + H2 内存数据库，验证了事件从 Kafka Topic → @KafkaListener → Handler → Repository 的完整链路。
 
 #### 10. 考虑添加消息追踪（Tracing）
 
@@ -212,11 +224,11 @@ Consumer 手动解析 `objectMapper.readTree(record.value())` + `event.get("even
 |------|------|:----:|
 | 架构设计 | Per-Context Topic + Choreography Saga + 防腐层，DDD 意识强 | ⭐⭐⭐⭐⭐ |
 | 代码一致性 | 7 个模块完全统一的 Publisher/Consumer/Handler 模式 | ⭐⭐⭐⭐⭐ |
-| 测试覆盖 | 三层测试（A/B/C），A 和 B 已 100% 完成 | ⭐⭐⭐⭐ |
+| 测试覆盖 | 四层测试（A/B-1/B-2/C-1/C-2），全部 100% 完成 | ⭐⭐⭐⭐⭐ |
 | 生产可靠性 | 缺少幂等、DLQ、offset 管理、发送确认 | ⭐⭐ |
 | 演进能力 | 有 version 字段但未利用，缺 schema 校验 | ⭐⭐ |
 
-**核心建议**：生产代码的结构和模式非常好，但 **消息可靠性**（幂等、DLQ、offset 管理）是从"能跑"到"敢上生产"的关键差距。建议优先补齐第 1-3 条建议。
+**核心建议**：测试覆盖和生产代码结构优秀，但 **消息可靠性**（幂等、DLQ、offset 管理）是从"能跑"到"敢上生产"的关键差距。建议优先补齐第 1-3 条建议。
 
 
 

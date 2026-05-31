@@ -671,3 +671,54 @@ Spring Boot实现指南提供了：
 **创建日期**: 2026-05-03  
 **最后更新**: 2026-05-03  
 **状态**: 初稿完成
+
+---
+
+## 实现状态（2026-05-31 更新）
+
+### 实际技术栈
+
+| 技术 | 版本 | 用途 |
+|------|------|------|
+| Java | 17 | 运行时 |
+| Spring Boot | 3.2.5 | 框架 |
+| Spring Data JPA | (Boot managed) | 持久化 |
+| Hibernate | (Boot managed) | ORM |
+| H2 | (test scope) | 测试数据库（PostgreSQL 兼容模式） |
+| PostgreSQL | 42.6.0 | 生产数据库 |
+| Spring Kafka | (Boot managed) | 消息传递 |
+| Cucumber | 7.15.0 | BDD 测试 |
+| JUnit 5 | (Boot managed) | 单元测试 |
+| Mockito | (Boot managed) | Mock 框架 |
+| AssertJ | (Boot managed) | 断言 |
+| Awaitility | (test scope) | 异步断言 |
+| SpringDoc OpenAPI | 2.5.0 | API 文档 |
+
+### 实际采用的 Spring 模式
+
+| 模式 | 实现 |
+|------|------|
+| 聚合根 | `@Entity` + `@EmbeddedId`（自定义 ID 类）+ `@Version`（乐观锁） |
+| 仓储 | 接口 extends `JpaRepository` + `CustomXxxRepository`，自定义实现用 Criteria API |
+| 领域事件发布 | `*DomainEventPublisher`（双发：Spring ApplicationEventPublisher + Kafka） |
+| 事件消费 | `@KafkaListener` + `ConsumerRecord<String, String>` + Jackson ObjectMapper |
+| 事务 | 类级 `@Transactional(readOnly = true)`，写方法 `@Transactional` |
+| 异常处理 | `DomainException` 层次结构 + `@RestControllerAdvice` `GlobalExceptionHandler` |
+| API 文档 | SpringDoc OpenAPI（Swagger UI per module，端口 8081-8087） |
+| 测试 | `@SpringBootTest` + `@EmbeddedKafka` + H2 + Cucumber BDD |
+
+### 项目模块结构
+
+```
+library-system (parent pom)
+├── library-shared          (共享 ID、事件、值对象)
+├── library-catalog         (port 8081)
+├── library-inventory       (port 8082)
+├── library-circulation     (port 8083)
+├── library-patron          (port 8084)
+├── library-payment         (port 8085)
+├── library-analytics       (port 8086)
+├── library-notification    (port 8087)
+├── library-e2e-test        (JUnit 5 跨上下文测试)
+└── library-integration-test (Cucumber BDD 跨上下文测试)
+```

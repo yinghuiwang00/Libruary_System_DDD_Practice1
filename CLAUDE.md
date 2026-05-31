@@ -6,28 +6,30 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Enterprise Library Management System built with Domain-Driven Design (DDD) principles.
 
-**Status:** All 7 bounded contexts implemented - Shared module and cross-context integration remaining
+**Status:** All 7 bounded contexts + shared module + cross-context integration (Kafka) implemented. 10 Maven modules, 318 main Java files, 152 test artifacts.
 
 ## Architecture
 
-### Bounded Contexts
+### Module Map
 
-| Module | Port | Description |
-|--------|------|-------------|
-| library-catalog | 8081 | Book info, ISBN, metadata, authors, publishers, categories |
-| library-inventory | 8082 | Book copies, multi-branch inventory, library locations |
-| library-circulation | 8083 | Borrow/return, holds/reservations, fines, renewals |
-| library-patron | 8084 | Membership, authentication, borrowing permissions |
-| library-payment | 8085 | Fine payments, third-party payment integration |
-| library-analytics | 8086 | Statistics, popular books, reporting |
-| library-notification | 8087 | Due reminders, reservation alerts, multi-channel |
-| library-shared | - | Shared domain concepts (IDs, events, base classes) |
+| Module | Port | Description | Events | Kafka Consumers |
+|--------|------|-------------|--------|-----------------|
+| library-shared | - | Shared IDs, events, value objects | 1 (base) | 0 |
+| library-catalog | 8081 | Books, ISBN, authors, publishers, categories | 4 | 0 |
+| library-inventory | 8082 | Book copies, multi-branch inventory, libraries | 8 | 2 |
+| library-circulation | 8083 | Borrow/return, holds, fines, renewals | 14 | 1 |
+| library-patron | 8084 | Membership, borrowing permissions | 6 | 2 |
+| library-payment | 8085 | Fine payments, refunds | 6 | 1 |
+| library-analytics | 8086 | Statistics, reporting | 4 | 2 |
+| library-notification | 8087 | Due reminders, alerts, multi-channel | 4 | 4 |
+| library-e2e-test | - | JUnit 5 E2E tests (9 tests) | - | - |
+| library-integration-test | - | Cucumber BDD E2E tests (9 scenarios) | - | - |
 
 ### DDD Layering (Actual Package Structure)
 
 ```
 domain/
-  ├── model/          # Aggregates, entities, value objects, enums (all in model/)
+  ├── model/          # Aggregates, entities, value objects, enums
   │   └── enums/      # Enum classes
   ├── service/        # Domain services
   ├── repository/     # Repository interfaces (JPA repositories)
@@ -36,13 +38,14 @@ domain/
 
 application/
   ├── service/        # Application services (orchestration)
+  ├── handler/        # Cross-context event handlers
   ├── command/        # Command objects
   ├── query/          # Query/criteria objects
   └── dto/            # Data transfer objects + ApiResponse
 
 infrastructure/
   ├── persistence/    # Custom repository implementations (Criteria API)
-  ├── messaging/      # Kafka event publishers
+  ├── messaging/      # Kafka publishers (*DomainEventPublisher) + consumers (*EventConsumer)
   └── config/         # JPA, module-specific config
 
 interfaces/
@@ -51,20 +54,122 @@ interfaces/
 
 ### Key Patterns
 
-- **Aggregate Root**: `@Entity` with `@EmbeddedId` (custom ID class), `@Version` for optimistic locking
-- **Repository**: Interface extends `JpaRepository` + `CustomXxxRepository`, custom impl uses Criteria API
-- **Domain Events**: Published via `CatalogDomainEventPublisher` (local Spring event + Kafka)
+- **Aggregate Root**: `@Entity` with `@EmbeddedId` (custom ID class extending `AggregateId`), `@Version` for optimistic locking, static `create()` factory method
+- **Repository**: Interface extends `JpaRepository` + optional `CustomXxxRepository`; custom impl uses Criteria API
+- **Double Publishing**: Each `*DomainEventPublisher` publishes to both Spring `ApplicationEventPublisher` (local, sync, always succeeds) and Kafka `KafkaTemplate` (async, optional via `ObjectProvider`, graceful degradation)
+- **Kafka Consumer**: `@KafkaListener` receives `ConsumerRecord<String, String>` → `ObjectMapper.readTree()` → switch on `eventType` → route to handler
 - **Transactions**: Class-level `@Transactional(readOnly = true)`, write methods override with `@Transactional`
-- **Exception Hierarchy**: `DomainException` base with error code, caught by `GlobalExceptionHandler`
+- **Exception Hierarchy**: `DomainException` base with error code, caught by `GlobalExceptionHandler` → `ApiResponse<T>`
+
+## Backward Compatibility Rules (CRITICAL)
+
+### library-shared Is a Stability Contract
+
+`library-shared` is depended on by ALL 7 bounded contexts. Changes here cascade everywhere.
+
+**MUST follow these rules:**
+
+1. **NEVER remove or rename** a public class/method/field in `library-shared`
+2. **NEVER change** the constructor signature of `AggregateId` or any ID subclass
+3. **NEVER change** the JSON field names in `DomainEvent` (`eventId`, `occurredAt`, `eventType`, `version`)
+4. **NEVER change** the database column name `id` in `AggregateId`
+5. **Adding** new ID types, value objects, or methods is safe
+6. **Deprecating** then removing in a later version is the only safe removal path
+
+### Kafka Event JSON Contract
+
+Consumers parse events as `ConsumerRecord<String, String>` JSON. The contract is:
+
+```json
+{
+  "eventType": "BookBorrowedEvent",   // REQUIRED — consumers switch on this
+  "eventId": "uuid",                  // from DomainEvent base
+  "patronId": {"value": "string"},    // ID fields are always {"value": "..."}
+  "bookId": "string",                 // or plain string depending on event
+  "amount": 15.00                     // numeric fields are plain numbers
+}
+```
+
+**MUST follow these rules:**
+
+1. **NEVER rename** an existing `eventType` string (breaks all consumers' switch statements)
+2. **NEVER remove** a JSON field that consumers read (check all handlers before removing)
+3. **NEVER change** the type of a JSON field (string→number, object→string, etc.)
+4. **Adding** new fields is safe (consumers ignore unknown fields)
+5. **Adding** new eventTypes is safe (consumers have `default -> log.debug("Ignoring...")`)
+6. **New Kafka topics** must be registered in `EmbeddedKafkaConfig` and `@EmbeddedKafka` annotations
+
+### Aggregate Schema Compatibility
+
+All aggregates use `@EmbeddedId` + `@Version`. Database schema changes:
+
+1. **NEVER remove or rename** a column that maps to an `@EmbeddedId` field
+2. **NEVER change** `@Column(name=...)` mappings on existing fields
+3. **Adding** new columns with defaults or nullable is safe
+4. **Adding** new `@Embedded` value objects is safe if columns don't conflict
+
+### Module Boundary Rules
+
+1. **NEVER add a compile dependency** from one bounded context to another (use Kafka events instead)
+2. **NEVER import** `com.library.catalog.domain.*` from `library-patron` or vice versa
+3. Only `library-shared` and `library-integration-test`/`library-e2e-test` may depend on multiple contexts
+4. New cross-context communication MUST go through Kafka events, NOT direct API calls
+
+## Development Rules
+
+### Before Writing Any Code
+
+1. Check `Architecture_Design/` for the relevant bounded context design doc (02-08)
+2. Check `DDD_Explanation/` for implementation patterns used in this project
+3. Identify which bounded context you're modifying — stay within its boundary
+4. If adding cross-context behavior: define the event first, then consumer
+
+### Aggregate Root Checklist
+
+Every new aggregate MUST have:
+- [ ] `@EmbeddedId` with custom ID class extending `AggregateId`
+- [ ] `@Version private Long version` for optimistic locking
+- [ ] `created_at` and `updated_at` audit columns
+- [ ] Static `create()` factory method (no public constructor)
+- [ ] Business methods (no public setters for domain state)
+- [ ] Domain exception for business rule violations (extending `DomainException`)
+
+### Event Publishing Checklist
+
+For any state-changing operation:
+- [ ] Domain event defined in `domain/event/` extending `DomainEvent`
+- [ ] `*DomainEventPublisher` bean in `infrastructure/messaging/` (named bean)
+- [ ] Publisher uses `ObjectProvider<KafkaTemplate>` for optional Kafka
+- [ ] Topic name configurable via `Environment.getProperty()`
+- [ ] `try-catch` wrapping Kafka send, `whenComplete` for async logging
+
+### Event Consuming Checklist
+
+For new cross-context event handlers:
+- [ ] Handler class in `application/handler/` with `handle(JsonNode event)` method
+- [ ] Consumer class in `infrastructure/messaging/` with `@KafkaListener`
+- [ ] Consumer uses `ObjectMapper.readTree()` + switch on `eventType`
+- [ ] Unknown eventTypes logged at DEBUG, not thrown
+- [ ] Errors logged at ERROR, not re-thrown (prevent poison pill)
+
+### Testing Requirements
+
+1. **Unit Tests**: Domain models, services, value objects (JUnit 5 + Mockito + AssertJ)
+2. **Integration Tests**: API endpoints with MockMvc + H2 (`@SpringBootTest`)
+3. **BDD Tests**: Happy path flows via Cucumber (`.feature` + `*Steps.java`)
+4. **E2E Tests**: If cross-context, add scenario to BOTH `library-e2e-test` AND `library-integration-test`
+5. **Coverage**: 80%+ required
+6. **Cucumber deps**: `cucumber-java:7.15.0`, `cucumber-spring:7.15.0`, `cucumber-junit-platform-engine:7.15.0`
+7. **Surefire**: Must include `<include>**/CucumberTestSuite.java</include>` in surefire config
 
 ## Technology Stack
 
 - **Runtime**: Java 17, Spring Boot 3.2.5
-- **Database**: PostgreSQL (prod) / H2 (test), Spring Data JPA, Hibernate
-- **Messaging**: Apache Kafka (spring-kafka)
-- **Build**: Maven multi-module
-- **API Docs**: SpringDoc OpenAPI (Swagger UI per module)
-- **Testing**: JUnit 5, Mockito, AssertJ, Cucumber BDD, MockMvc
+- **Database**: PostgreSQL (prod) / H2 in PostgreSQL mode (test), Spring Data JPA, Hibernate
+- **Messaging**: Apache Kafka (spring-kafka), EmbeddedKafka for tests
+- **Build**: Maven multi-module (parent pom + 10 child modules)
+- **API Docs**: SpringDoc OpenAPI 2.5.0 (Swagger UI per module)
+- **Testing**: JUnit 5, Mockito, AssertJ, Awaitility, Cucumber 7.15.0, MockMvc
 
 ## Build and Test Commands
 
@@ -92,88 +197,58 @@ mvn clean install -DskipTests
 
 # Run application (per module)
 cd library-catalog && mvn spring-boot:run
+
+# Run E2E tests only
+cd library-e2e-test && mvn test
+cd library-integration-test && mvn test
 ```
 
-## Development Progress
-
-**Plan**: See `DEVELOPMENT_PLAN.md` for detailed task breakdown with acceptance criteria.
-**Design Docs**: See `Architecture_Design/` for bounded context designs (02-08), Spring guide (10), test plan (15).
-
-### How to Continue
-
-1. Open `DEVELOPMENT_PLAN.md`, find next unchecked task
-2. Read the corresponding design doc in `Architecture_Design/`
-3. Reference `10-Spring实现指南.md` for Spring patterns
-4. Follow TDD: write test first, implement, verify 80%+ coverage
-5. Check off acceptance criteria in the plan
-
-### Current Status
+## Implementation Progress
 
 | Stage | Context | Status | Tests |
 |-------|---------|--------|-------|
-| 1 | Project Initialization | **Complete** | - |
-| 2 | Catalog Context | **Complete** | ~91+ (unit + integration + 4 BDD features) |
-| 3 | Inventory Context | **Complete** | 65 (55 unit + 7 integration + 3 BDD features) |
-| 4 | Circulation Context | **Complete** | ~62 (54 domain + 5 integration + 1 BDD feature) |
-| 5 | Patron Context | **Complete** | 156 (142 unit + 13 integration + 1 BDD feature) |
-| 6 | Payment Context | **Complete** | 138 (92 unit + 33 service + 13 integration + 1 BDD feature) |
-| 7 | Analytics Context | **Complete** | 133 (71 unit + 26 service + 19 integration + 6 BDD scenarios) |
-| 8 | Notification Context | **Complete** | 109 (domain + service + integration + 3 BDD scenarios) |
-| 9 | Shared Module | **Complete** | 84 (IDs + events + 4 value objects) |
-| 10 | Cross-Context Integration | Not started | 0 |
+| 1 | Project Initialization | ✅ Complete | - |
+| 2 | Catalog Context | ✅ Complete | 22 unit + 5 steps + 4 features |
+| 3 | Inventory Context | ✅ Complete | 9 unit + 4 steps + 5 features |
+| 4 | Circulation Context | ✅ Complete | 7 unit + 1 steps + 2 features |
+| 5 | Patron Context | ✅ Complete | 7 unit + 6 steps + 8 features |
+| 6 | Payment Context | ✅ Complete | 6 unit + 2 steps + 2 features |
+| 7 | Analytics Context | ✅ Complete | 7 unit + 3 steps + 3 features |
+| 8 | Notification Context | ✅ Complete | 7 unit + 7 steps + 6 features |
+| 9 | Shared Module | ✅ Complete | 6 unit tests |
+| 10 | Cross-Context Integration | ✅ Partial | 9 E2E JUnit5 + 9 E2E BDD |
 
-**Next Task**: Cross-Context Integration (Kafka, Saga, API Gateway).
+**Remaining**: Saga coordinator, API Gateway, distributed tracing.
 
 ### Shared Module (library-shared)
 
-Already implemented:
-- `AggregateId` base class + 16 ID types: BookId, AuthorId, PublisherId, CategoryId, LibraryId, CopyId, CopyInventoryId, LoanId, HoldId, FineId, PatronId, PaymentId, RefundId, ReportId, DashboardId, NotificationId
+- `AggregateId` base class + 16 ID types
 - `DomainEvent` base class + `DomainEventPublisher` interface
-- Value objects: `Money` (amount + currency, arithmetic), `Email` (validation + normalize), `PhoneNumber` (format validation), `Address` (street/city/postalCode/state/country)
+- Value objects: `Money`, `Email`, `PhoneNumber`, `Address`
 
-## Development Workflow
+## Key File Locations
 
-1. **Before coding**: Read relevant design doc (02-08) in `Architecture_Design/`
-2. **DDD layering**: Respect domain/application/infrastructure/interfaces boundaries
-3. **TDD**: Write tests first (RED) -> implement (GREEN) -> refactor (IMPROVE), 80%+ coverage
-4. **Domain events**: Publish for all state-changing operations
-5. **Transactions**: `@Transactional(readOnly = true)` on services, `@Transactional` on writes
-6. **Optimistic locking**: All aggregates must have `@Version`
-7. **Audit fields**: `created_at`, `updated_at` on all entities
-8. **Code review**: Use code-reviewer agent after writing code
-9. **Progress**: Update DEVELOPMENT_PLAN.md checkboxes; save summary in `Progress/`
+| What | Where |
+|------|-------|
+| Design docs | `Architecture_Design/02-08` (per context), `09` (overall), `10` (Spring guide) |
+| Implementation patterns | `DDD_Explanation/` (4 docs on layering, aggregates, events, testing) |
+| E2E BDD plan | `Architecture_Design/E2E-BDD-Migration-Plan.md` |
+| Test Strategy | `Architecture_Design/15-Test-Strategy.md` |
+| Kafka strategy | `Architecture_Design/Kafka-Strategy.md` |
+| Development plan | `DEVELOPMENT_PLAN.md` |
 
-## Testing Strategy
 
-- **Unit Tests**: Domain models, services, value objects (JUnit 5 + Mockito + AssertJ)
-- **Integration Tests**: API endpoints with MockMvc + H2 (`@SpringBootTest`)
-- **Functional Tests (Cucumber BDD)**: Happy path flows only; edge cases in unit tests
-- **Test Plan**: See `Architecture_Design/15-TESTPLAN.md`
-- **Coverage**: 80%+ required
-- **Cucumber deps**: `cucumber-java`, `cucumber-spring`, `cucumber-junit-platform-engine`
+## Infrastructure (Dev Environment)
 
-## Infrastructure
-
-开发环境统一凭据（仅在开发环境使用，生产环境另行配置）：
-
-| 参数 | 值 |
-|------|----|
-| PostgreSQL 用户名 | `postgres` |
-| PostgreSQL 密码 | `dev_pg_2026` |
-| PostgreSQL 端口 | `5432` |
-| Redis 密码 | `dev_redis_2026` |
-| Redis 端口 | `6379` |
-| Kafka 端口（主机访问） | `29092` |
-| Kafka 端口（容器网络） | `9092` |
-| Kafka UI 地址 | `http://localhost:9000` |
-| Prometheus 地址 | `http://localhost:9090` |
-| Grafana 地址 | `http://localhost:3000` |
-| Grafana 用户名 | `admin` |
-| Grafana 密码 | `dev_grafana_2026` |
-| Jaeger UI 地址 | `http://localhost:16686` |
-| Jaeger OTLP (gRPC) | `localhost:4317` |
-| Jaeger OTLP (HTTP) | `localhost:4318` |
+| Parameter | Value |
+|-----------|-------|
+| PostgreSQL | port 5432, user `postgres` |
+| Redis | port 6379 |
+| Kafka (host) | port 29092 |
+| Kafka (container) | port 9092 |
+| Kafka UI | http://localhost:9000 |
+| Prometheus | http://localhost:9090 |
+| Grafana | http://localhost:3000, user `admin` |
+| Jaeger UI | http://localhost:16686 |
 
 Credentials are in environment variables, not hardcoded in source.
-
----
