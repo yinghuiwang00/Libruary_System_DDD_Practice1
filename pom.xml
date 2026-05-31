@@ -28,6 +28,7 @@
         <module>library-payment</module>
         <module>library-analytics</module>
         <module>library-notification</module>
+        <module>library-e2e-test</module>
         <module>library-integration-test</module>
     </modules>
 

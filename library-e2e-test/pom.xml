@@ -10,9 +10,9 @@
         <version>1.0.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>library-integration-test</artifactId>
-    <name>Library Integration Test (BDD)</name>
-    <description>Cucumber BDD end-to-end cross-context integration tests via Kafka</description>
+    <artifactId>library-e2e-test</artifactId>
+    <name>Library E2E Test</name>
+    <description>End-to-end cross-context JUnit 5 tests via Kafka</description>
 
     <dependencies>
         <!-- All bounded context modules -->
@@ -76,31 +76,6 @@
             <scope>test</scope>
         </dependency>
 
-        <!-- Cucumber BDD -->
-        <dependency>
-            <groupId>io.cucumber</groupId>
-            <artifactId>cucumber-java</artifactId>
-            <version>7.15.0</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>io.cucumber</groupId>
-            <artifactId>cucumber-spring</artifactId>
-            <version>7.15.0</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>io.cucumber</groupId>
-            <artifactId>cucumber-junit-platform-engine</artifactId>
-            <version>7.15.0</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.junit.platform</groupId>
-            <artifactId>junit-platform-suite</artifactId>
-            <scope>test</scope>
-        </dependency>
-
         <!-- Test Framework -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -126,9 +101,6 @@
                 <artifactId>maven-surefire-plugin</artifactId>
                 <configuration>
                     <failIfNoTests>false</failIfNoTests>
-                    <includes>
-                        <include>**/CucumberTestSuite.java</include>
-                    </includes>
                 </configuration>
             </plugin>
         </plugins>
