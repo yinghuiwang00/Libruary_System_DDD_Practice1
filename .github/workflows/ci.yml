@@ -48,6 +48,12 @@ jobs:
       - name: Run tests (library-notification)
         run: mvn test -pl library-notification -B
 
+      - name: Run tests (library-e2e-test)
+        run: mvn test -pl library-e2e-test -B
+
+      - name: Run tests (library-integration-test)
+        run: mvn test -pl library-integration-test -B
+
       - name: Upload test reports
         uses: actions/upload-artifact@v4
         if: always()
