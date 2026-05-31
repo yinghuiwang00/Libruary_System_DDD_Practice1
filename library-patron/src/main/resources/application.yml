@@ -18,6 +18,23 @@ spring:
       hibernate:
         format_sql: true
         dialect: org.hibernate.dialect.PostgreSQLDialect
+  kafka:
+    bootstrap-servers: localhost:29092
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      properties:
+        spring.json.add.type.headers: false
+      acks: all
+      retries: 3
+    consumer:
+      group-id: library-patron
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      # value-deserializer 使用 StringDeserializer：Consumer 手动解析 JSON（防腐层设计）
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      auto-offset-reset: earliest
+    topic:
+      domain-events: library.patron.events
 
 springdoc:
   api-docs:

@@ -7,7 +7,7 @@ import com.library.circulation.domain.model.enums.HoldStatus;
 import com.library.circulation.domain.model.enums.LoanStatus;
 import com.library.circulation.domain.repository.HoldRepository;
 import com.library.circulation.domain.repository.LoanRepository;
-import com.library.shared.domain.event.DomainEventPublisher;
+import com.library.circulation.infrastructure.messaging.CirculationDomainEventPublisher;
 import com.library.shared.domain.model.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,11 +21,11 @@ public class CirculationManagementService {
 
     private final LoanRepository loanRepository;
     private final HoldRepository holdRepository;
-    private final DomainEventPublisher eventPublisher;
+    private final CirculationDomainEventPublisher eventPublisher;
 
     public CirculationManagementService(LoanRepository loanRepository,
                                         HoldRepository holdRepository,
-                                        DomainEventPublisher eventPublisher) {
+                                        CirculationDomainEventPublisher eventPublisher) {
         this.loanRepository = loanRepository;
         this.holdRepository = holdRepository;
         this.eventPublisher = eventPublisher;

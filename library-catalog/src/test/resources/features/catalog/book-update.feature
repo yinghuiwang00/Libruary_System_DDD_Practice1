@@ -1,10 +1,10 @@
-Feature: 图书更新
-  作为图书馆管理员
-  我想更新已发布图书的信息
-  以便保持信息的准确性
+Feature: Book Update
+  As a library administrator
+  I want to update published book information
+  So that the information remains accurate
 
-  Scenario: 成功更新已发布图书的标题和描述
-    Given 系统中存在一本状态为"PUBLISHED"的图书
-    When 我将该图书的标题更新为"领域驱动设计(修订版)"
-    Then 图书更新成功
-    And 图书标题为"领域驱动设计(修订版)"
+  Scenario: Successfully update the title and description of a published book
+    Given a book with status "PUBLISHED" exists in the system
+    When I update the book title to "Domain-Driven Design (Revised Edition)"
+    Then the book is updated successfully
+    And the book title is "Domain-Driven Design (Revised Edition)"

@@ -8,7 +8,7 @@ import com.library.analytics.domain.model.enums.ReportPeriod;
 import com.library.analytics.domain.model.enums.ReportStatus;
 import com.library.analytics.domain.model.enums.ReportType;
 import com.library.analytics.domain.repository.AnalyticsReportRepository;
-import com.library.shared.domain.event.DomainEventPublisher;
+import com.library.analytics.infrastructure.messaging.AnalyticsDomainEventPublisher;
 import com.library.shared.domain.model.ReportId;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,10 +21,10 @@ import java.util.List;
 public class AnalyticsService {
 
     private final AnalyticsReportRepository reportRepository;
-    private final DomainEventPublisher eventPublisher;
+    private final AnalyticsDomainEventPublisher eventPublisher;
 
     public AnalyticsService(AnalyticsReportRepository reportRepository,
-                            DomainEventPublisher eventPublisher) {
+                            AnalyticsDomainEventPublisher eventPublisher) {
         this.reportRepository = reportRepository;
         this.eventPublisher = eventPublisher;
     }

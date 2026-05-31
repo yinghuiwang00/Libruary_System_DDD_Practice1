@@ -1,12 +1,12 @@
-Feature: 馆藏初始化
-  作为图书馆管理员
-  我想为图书创建馆藏记录
-  以便管理各分馆的图书副本
+Feature: Inventory Creation
+  As a library administrator
+  I want to create inventory records for books
+  In order to manage book copies across library branches
 
-  Scenario: 成功创建馆藏并添加初始副本
-    Given 系统中存在编码为"LIB-001"的分馆
-    And 该图书在该分馆尚无馆藏记录
-    When 我为图书"BOOK-001"在该分馆创建馆藏，初始副本数为2
-    Then 馆藏创建成功
-    And 总副本数为2
-    And 可用副本数为2
+  Scenario: Successfully create inventory and add initial copies
+    Given a library with code "LIB-001" exists in the system
+    And the book has no inventory record in that library yet
+    When I create an inventory for book "BOOK-001" in that library with 2 initial copies
+    Then the inventory is created successfully
+    And the total copy count is 2
+    And the available copy count is 2

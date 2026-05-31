@@ -29,12 +29,12 @@ public class InventorySteps {
     @Autowired
     private TestScenarioState state;
 
-    @Given("^该图书在该分馆尚无馆藏记录$")
+    @Given("^the book has no inventory record in that library yet$")
     public void noInventoryForBook() {
         // Clean state ensures this
     }
 
-    @When("^我为图书\"([^\"]*)\"在该分馆创建馆藏，初始副本数为(\\d+)$")
+    @When("^I create an inventory for book \"([^\"]*)\" in that library with (\\d+) initial copies$")
     public void createInventory(String bookId, int initialCopies) throws Exception {
         CreateInventoryCommand command = CreateInventoryCommand.builder()
             .bookId(bookId)
@@ -55,31 +55,31 @@ public class InventorySteps {
         }
     }
 
-    @Then("馆藏创建成功")
+    @Then("the inventory is created successfully")
     public void inventoryCreated() {
         assertThat(state.getMvcResult().getResponse().getStatus()).isEqualTo(201);
     }
 
-    @Then("^总副本数为(\\d+)$")
+    @Then("^the total copy count is (\\d+)$")
     public void totalCopiesIs(int expected) throws Exception {
         ApiResponse<CopyInventoryDTO> response = readInventoryResponse(
             state.getMvcResult().getResponse().getContentAsString(StandardCharsets.UTF_8));
         assertThat(response.getData().getTotalCopies()).isEqualTo(expected);
     }
 
-    @Then("^可用副本数为(\\d+)$")
+    @Then("^the available copy count is (\\d+)$")
     public void availableCopiesIs(int expected) throws Exception {
         ApiResponse<CopyInventoryDTO> response = readInventoryResponse(
             state.getMvcResult().getResponse().getContentAsString(StandardCharsets.UTF_8));
         assertThat(response.getData().getAvailableCopies()).isEqualTo(expected);
     }
 
-    @Given("^图书\"([^\"]*)\"在该分馆有馆藏记录，包含(\\d+)个可用副本$")
+    @Given("^book \"([^\"]*)\" has an inventory record in that library with (\\d+) available copies$")
     public void inventoryWithCopies(String bookId, int copies) throws Exception {
         createInventory(bookId, copies);
     }
 
-    @When("我借出一个副本")
+    @When("I checkout a copy")
     public void checkoutCopy() throws Exception {
         // Get current inventory to find a copy ID
         ApiResponse<CopyInventoryDTO> invResponse = fetchInventory();
@@ -99,24 +99,24 @@ public class InventorySteps {
             .andReturn());
     }
 
-    @Then("借出成功")
+    @Then("the checkout succeeds")
     public void checkoutSuccess() {
         assertThat(state.getMvcResult().getResponse().getStatus()).isEqualTo(200);
     }
 
-    @Then("可用副本数变为{int}")
+    @Then("the available copy count becomes {int}")
     public void availableCopiesBecomes(int expected) throws Exception {
         ApiResponse<CopyInventoryDTO> response = fetchInventory();
         assertThat(response.getData().getAvailableCopies()).isEqualTo(expected);
     }
 
-    @When("我归还该副本")
+    @When("I return that copy")
     public void returnCopy() throws Exception {
         state.setMvcResult(mockMvc.perform(post("/api/inventory/copies/" + state.getCopyId() + "/return"))
             .andReturn());
     }
 
-    @Then("归还成功")
+    @Then("the return succeeds")
     public void returnSuccess() {
         assertThat(state.getMvcResult().getResponse().getStatus()).isEqualTo(200);
     }

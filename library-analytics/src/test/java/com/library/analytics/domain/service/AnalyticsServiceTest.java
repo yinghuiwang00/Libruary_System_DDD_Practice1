@@ -8,7 +8,7 @@ import com.library.analytics.domain.model.enums.ReportPeriod;
 import com.library.analytics.domain.model.enums.ReportStatus;
 import com.library.analytics.domain.model.enums.ReportType;
 import com.library.analytics.domain.repository.AnalyticsReportRepository;
-import com.library.shared.domain.event.DomainEventPublisher;
+import com.library.analytics.infrastructure.messaging.AnalyticsDomainEventPublisher;
 import com.library.shared.domain.model.ReportId;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -35,7 +35,7 @@ class AnalyticsServiceTest {
     private AnalyticsReportRepository reportRepository;
 
     @Mock
-    private DomainEventPublisher eventPublisher;
+    private AnalyticsDomainEventPublisher eventPublisher;
 
     @Captor
     private ArgumentCaptor<ReportCreatedEvent> createdEventCaptor;

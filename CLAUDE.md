@@ -154,15 +154,25 @@ Already implemented:
 
 ## Infrastructure
 
-PostgreSQL, Redis, Kafka are running locally.
+开发环境统一凭据（仅在开发环境使用，生产环境另行配置）：
 
-| Parameter | Value |
-|-----------|-------|
-| PostgreSQL | `postgres` / port `5432` |
-| Redis | port `6379` |
-| Kafka (host) | port `29092` |
-| Kafka (container) | port `9092` |
-| Kafka UI | `http://localhost:9000` |
+| 参数 | 值 |
+|------|----|
+| PostgreSQL 用户名 | `postgres` |
+| PostgreSQL 密码 | `dev_pg_2026` |
+| PostgreSQL 端口 | `5432` |
+| Redis 密码 | `dev_redis_2026` |
+| Redis 端口 | `6379` |
+| Kafka 端口（主机访问） | `29092` |
+| Kafka 端口（容器网络） | `9092` |
+| Kafka UI 地址 | `http://localhost:9000` |
+| Prometheus 地址 | `http://localhost:9090` |
+| Grafana 地址 | `http://localhost:3000` |
+| Grafana 用户名 | `admin` |
+| Grafana 密码 | `dev_grafana_2026` |
+| Jaeger UI 地址 | `http://localhost:16686` |
+| Jaeger OTLP (gRPC) | `localhost:4317` |
+| Jaeger OTLP (HTTP) | `localhost:4318` |
 
 Credentials are in environment variables, not hardcoded in source.
 

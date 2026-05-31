@@ -6,8 +6,8 @@ spring:
     name: library-inventory
   datasource:
     url: jdbc:postgresql://localhost:5432/library_inventory
-    username: postgres
-    password: dev_pg_2026
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:dev_pg_2026}
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
@@ -23,41 +23,21 @@ spring:
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      properties:
+        spring.json.add.type.headers: false
       acks: all
       retries: 3
     consumer:
       group-id: library-inventory
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      # value-deserializer 使用 StringDeserializer：Consumer 手动解析 JSON（防腐层设计）
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       auto-offset-reset: earliest
-      properties:
-        spring.json.trusted.packages: "com.library.*"
     topic:
-      domain-events: library.domain-events
+      domain-events: library.inventory.events
 
 springdoc:
   api-docs:
     path: /api-docs
   swagger-ui:
     path: /swagger-ui.html
-
----
-spring:
-  config:
-    activate:
-      on-profile: test
-  datasource:
-    url: jdbc:h2:mem:library_inventory_test;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
-    username: sa
-    password:
-    driver-class-name: org.h2.Driver
-  jpa:
-    hibernate:
-      ddl-auto: create-drop
-    show-sql: true
-    properties:
-      hibernate:
-        dialect: org.hibernate.dialect.H2Dialect
-  autoconfigure:
-    exclude:
-      - org.springframework.boot.autoconfigure.kafka.KafkaAutoConfiguration

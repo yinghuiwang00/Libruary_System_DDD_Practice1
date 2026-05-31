@@ -9,7 +9,7 @@ import com.library.payment.domain.model.enums.PaymentMethod;
 import com.library.payment.domain.model.enums.PaymentType;
 import com.library.payment.domain.repository.PaymentRepository;
 import com.library.payment.domain.repository.RefundRepository;
-import com.library.shared.domain.event.DomainEventPublisher;
+import com.library.payment.infrastructure.messaging.PaymentDomainEventPublisher;
 import com.library.shared.domain.model.PatronId;
 import com.library.shared.domain.model.PaymentId;
 import com.library.shared.domain.model.RefundId;
@@ -25,11 +25,11 @@ public class PaymentService {
 
     private final PaymentRepository paymentRepository;
     private final RefundRepository refundRepository;
-    private final DomainEventPublisher eventPublisher;
+    private final PaymentDomainEventPublisher eventPublisher;
 
     public PaymentService(PaymentRepository paymentRepository,
                           RefundRepository refundRepository,
-                          DomainEventPublisher eventPublisher) {
+                          PaymentDomainEventPublisher eventPublisher) {
         this.paymentRepository = paymentRepository;
         this.refundRepository = refundRepository;
         this.eventPublisher = eventPublisher;

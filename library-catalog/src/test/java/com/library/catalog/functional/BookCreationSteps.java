@@ -32,13 +32,13 @@ public class BookCreationSteps {
     @Autowired
     private TestScenarioState state;
 
-    @Given("^系统中不存在ISBN为\"([^\"]*)\"的图书$")
+    @Given("^no book with ISBN \"([^\"]*)\" exists in the system$")
     public void noBookWithIsbn(String isbn) {
         boolean exists = bookRepository.existsByIsbn(new ISBN(isbn));
         assertThat(exists).isFalse();
     }
 
-    @When("^我创建一本新书，标题为\"([^\"]*)\"，作者为\"([^\"]*)\"$")
+    @When("^I create a new book with title \"([^\"]*)\" and author \"([^\"]*)\"$")
     public void createBookWithTitleAndAuthor(String title, String author) throws Exception {
         CreateBookCommand command = new CreateBookCommand(
             "9787111407010", title, null, null, null, null
@@ -49,22 +49,22 @@ public class BookCreationSteps {
             .andReturn());
     }
 
-    @When("^ISBN为\"([^\"]*)\"$")
+    @When("^the ISBN is \"([^\"]*)\"$")
     public void setIsbn(String isbn) {
         // ISBN is already set in the create step
     }
 
-    @When("^分类为\"([^\"]*)\"$")
+    @When("^the category is \"([^\"]*)\"$")
     public void setCategory(String category) {
         // Category would be added separately
     }
 
-    @Then("图书创建成功")
+    @Then("the book is created successfully")
     public void bookCreated() {
         assertThat(state.getMvcResult().getResponse().getStatus()).isEqualTo(201);
     }
 
-    @Then("^图书状态为\"([^\"]*)\"$")
+    @Then("^the book status is \"([^\"]*)\"$")
     @SuppressWarnings("unchecked")
     public void bookStatusIs(String expectedStatus) throws Exception {
         ApiResponse<BookDTO> response = objectMapper.readValue(

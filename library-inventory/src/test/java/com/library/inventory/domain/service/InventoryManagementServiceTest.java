@@ -13,7 +13,7 @@ import com.library.inventory.domain.model.Location;
 import com.library.inventory.domain.repository.BookCopyRepository;
 import com.library.inventory.domain.repository.CopyInventoryRepository;
 import com.library.inventory.domain.repository.LibraryRepository;
-import com.library.shared.domain.event.DomainEventPublisher;
+import com.library.inventory.infrastructure.messaging.InventoryDomainEventPublisher;
 import com.library.shared.domain.model.BookId;
 import com.library.shared.domain.model.CopyId;
 import com.library.shared.domain.model.CopyInventoryId;
@@ -47,7 +47,7 @@ class InventoryManagementServiceTest {
     private LibraryRepository libraryRepository;
 
     @Mock
-    private DomainEventPublisher eventPublisher;
+    private InventoryDomainEventPublisher eventPublisher;
 
     @Captor
     private ArgumentCaptor<Object> eventCaptor;

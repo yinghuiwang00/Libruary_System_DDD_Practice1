@@ -28,11 +28,11 @@ public class SharedBookSteps {
     @Autowired
     private BookRepository bookRepository;
 
-    @Given("^系统中存在一本状态为\"([^\"]*)\"的图书$")
+    @Given("^a book with status \"([^\"]*)\" exists in the system$")
     public void bookWithStatusExists(String status) {
         Book book = Book.create(
             new ISBN("9787111407027"),
-            "领域驱动设计", "Test description", null, 400, "zh"
+            "Domain-Driven Design", "Test description", null, 400, "zh"
         );
         book.addAuthor("author-001", "Eric Evans", AuthorRole.AUTHOR);
         book.setPublisher("publisher-001");
@@ -44,7 +44,7 @@ public class SharedBookSteps {
         state.setBookId(saved.getId().getValue());
     }
 
-    @Then("^图书标题为\"([^\"]*)\"$")
+    @Then("^the book title is \"([^\"]*)\"$")
     @SuppressWarnings("unchecked")
     public void bookTitleIs(String expectedTitle) throws Exception {
         MvcResult result = state.getMvcResult();

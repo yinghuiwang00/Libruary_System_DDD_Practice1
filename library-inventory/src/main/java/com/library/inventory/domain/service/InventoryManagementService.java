@@ -14,7 +14,7 @@ import com.library.inventory.domain.model.enums.CopyStatus;
 import com.library.inventory.domain.repository.BookCopyRepository;
 import com.library.inventory.domain.repository.CopyInventoryRepository;
 import com.library.inventory.domain.repository.LibraryRepository;
-import com.library.shared.domain.event.DomainEventPublisher;
+import com.library.inventory.infrastructure.messaging.InventoryDomainEventPublisher;
 import com.library.shared.domain.model.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -29,12 +29,12 @@ public class InventoryManagementService {
     private final CopyInventoryRepository inventoryRepository;
     private final BookCopyRepository copyRepository;
     private final LibraryRepository libraryRepository;
-    private final DomainEventPublisher eventPublisher;
+    private final InventoryDomainEventPublisher eventPublisher;
 
     public InventoryManagementService(CopyInventoryRepository inventoryRepository,
                                       BookCopyRepository copyRepository,
                                       LibraryRepository libraryRepository,
-                                      DomainEventPublisher eventPublisher) {
+                                      InventoryDomainEventPublisher eventPublisher) {
         this.inventoryRepository = inventoryRepository;
         this.copyRepository = copyRepository;
         this.libraryRepository = libraryRepository;
@@ -217,5 +217,9 @@ public class InventoryManagementService {
             inventory.getLibraryCode(),
             inventory.getBookId().substring(0, Math.min(8, inventory.getBookId().length())),
             inventory.getTotalCopies() + 1);
+    }
+
+    public java.util.Optional<Library> findLibraryByCode(String code) {
+        return libraryRepository.findByCode(code);
     }
 }

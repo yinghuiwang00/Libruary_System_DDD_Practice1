@@ -10,7 +10,7 @@ import com.library.payment.domain.model.enums.PaymentStatus;
 import com.library.payment.domain.model.enums.PaymentType;
 import com.library.payment.domain.repository.PaymentRepository;
 import com.library.payment.domain.repository.RefundRepository;
-import com.library.shared.domain.event.DomainEventPublisher;
+import com.library.payment.infrastructure.messaging.PaymentDomainEventPublisher;
 import com.library.shared.domain.model.PatronId;
 import com.library.shared.domain.model.PaymentId;
 import com.library.shared.domain.model.RefundId;
@@ -42,7 +42,7 @@ class PaymentServiceTest {
     private RefundRepository refundRepository;
 
     @Mock
-    private DomainEventPublisher eventPublisher;
+    private PaymentDomainEventPublisher eventPublisher;
 
     @InjectMocks
     private PaymentService paymentService;

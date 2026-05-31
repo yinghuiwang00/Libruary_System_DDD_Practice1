@@ -34,14 +34,14 @@ public class BorrowReturnStepDefinitions {
 
     // ========== Borrow steps ==========
 
-    @Given("^读者\"([^\"]*)\"想要借阅图书\"([^\"]*)\"的副本\"([^\"]*)\"$")
+    @Given("^patron \"([^\"]*)\" wants to borrow copy \"([^\"]*)\" of book \"([^\"]*)\"$")
     public void patronWantsToBorrow(String patronId, String bookId, String copyId) {
         state.setPatronId(patronId);
         state.setBookId(bookId);
         state.setCopyId(copyId);
     }
 
-    @When("读者借出该图书")
+    @When("the patron borrows the book")
     public void borrowBook() throws Exception {
         BorrowBookCommand command = new BorrowBookCommand(
             state.getCopyId(), state.getPatronId(), state.getBookId()
@@ -58,12 +58,12 @@ public class BorrowReturnStepDefinitions {
         }
     }
 
-    @Then("借出成功")
+    @Then("the borrowing succeeds")
     public void borrowSuccess() {
         assertThat(state.getMvcResult().getResponse().getStatus()).isEqualTo(201);
     }
 
-    @Then("^借阅状态为\"([^\"]*)\"$")
+    @Then("^the loan status is \"([^\"]*)\"$")
     public void loanStatusIs(String expectedStatus) throws Exception {
         ApiResponse<LoanDTO> response = readLoanResponse(state.getMvcResult());
         assertThat(response.getData().getStatus()).isEqualTo(expectedStatus);
@@ -71,7 +71,7 @@ public class BorrowReturnStepDefinitions {
 
     // ========== Return steps ==========
 
-    @Given("^读者\"([^\"]*)\"已经借出了图书\"([^\"]*)\"的副本\"([^\"]*)\"$")
+    @Given("^patron \"([^\"]*)\" has already borrowed copy \"([^\"]*)\" of book \"([^\"]*)\"$")
     public void patronAlreadyBorrowed(String patronId, String bookId, String copyId) throws Exception {
         state.setPatronId(patronId);
         state.setBookId(bookId);
@@ -79,25 +79,25 @@ public class BorrowReturnStepDefinitions {
         borrowBook();
     }
 
-    @When("读者归还该图书")
+    @When("the patron returns the book")
     public void returnBook() throws Exception {
         state.setMvcResult(mockMvc.perform(post("/api/circulation/loans/" + state.getLoanId() + "/return"))
             .andReturn());
     }
 
-    @Then("归还成功")
+    @Then("the return succeeds")
     public void returnSuccess() {
         assertThat(state.getMvcResult().getResponse().getStatus()).isEqualTo(200);
     }
 
     // ========== Hold steps ==========
 
-    @Given("^图书\"([^\"]*)\"当前不可借阅$")
+    @Given("^book \"([^\"]*)\" is currently unavailable$")
     public void bookNotAvailable(String bookId) {
         state.setBookId(bookId);
     }
 
-    @When("^读者\"([^\"]*)\"预约该图书$")
+    @When("^patron \"([^\"]*)\" places a hold on the book$")
     public void placeHold(String patronId) throws Exception {
         state.setPatronId(patronId);
         PlaceHoldCommand command = new PlaceHoldCommand(
@@ -114,12 +114,12 @@ public class BorrowReturnStepDefinitions {
         }
     }
 
-    @Then("预约成功")
+    @Then("the hold is placed successfully")
     public void holdSuccess() {
         assertThat(state.getMvcResult().getResponse().getStatus()).isEqualTo(201);
     }
 
-    @Then("^预约状态为\"([^\"]*)\"$")
+    @Then("^the hold status is \"([^\"]*)\"$")
     public void holdStatusIs(String expectedStatus) throws Exception {
         ApiResponse<HoldDTO> response = readHoldResponse(state.getMvcResult());
         assertThat(response.getData().getStatus()).isEqualTo(expectedStatus);
@@ -127,7 +127,7 @@ public class BorrowReturnStepDefinitions {
 
     // ========== Renew steps ==========
 
-    @When("读者续借该图书")
+    @When("the patron renews the book")
     public void renewBook() throws Exception {
         state.setMvcResult(mockMvc.perform(post("/api/circulation/loans/" + state.getLoanId() + "/renew"))
             .andReturn());
@@ -138,18 +138,18 @@ public class BorrowReturnStepDefinitions {
         }
     }
 
-    @Then("续借成功")
+    @Then("the renewal succeeds")
     public void renewSuccess() {
         assertThat(state.getMvcResult().getResponse().getStatus()).isEqualTo(200);
     }
 
-    @Then("^续借次数为(\\d+)$")
+    @Then("^the renewal count is (\\d+)$")
     public void renewalCountIs(int expectedCount) throws Exception {
         ApiResponse<LoanDTO> response = readLoanResponse(state.getMvcResult());
         assertThat(response.getData().getRenewalCount()).isEqualTo(expectedCount);
     }
 
-    @Then("应还日期已延长")
+    @Then("the due date has been extended")
     public void dueDateExtended() throws Exception {
         ApiResponse<LoanDTO> response = readLoanResponse(state.getMvcResult());
         assertThat(response.getData().getDueDate()).isAfter(state.getOriginalDueDate());
@@ -157,7 +157,7 @@ public class BorrowReturnStepDefinitions {
 
     // ========== Renewal limit steps ==========
 
-    @Given("^读者\"([^\"]*)\"已经借出了图书\"([^\"]*)\"的副本\"([^\"]*)\"且已达到最大续借次数$")
+    @Given("^patron \"([^\"]*)\" has already borrowed copy \"([^\"]*)\" of book \"([^\"]*)\" and reached the maximum renewal count$")
     public void patronAlreadyBorrowedWithMaxRenewals(String patronId, String bookId, String copyId) throws Exception {
         state.setPatronId(patronId);
         state.setBookId(bookId);
@@ -173,13 +173,13 @@ public class BorrowReturnStepDefinitions {
         }
     }
 
-    @When("读者尝试续借该图书")
+    @When("the patron attempts to renew the book")
     public void tryRenewBook() throws Exception {
         state.setMvcResult(mockMvc.perform(post("/api/circulation/loans/" + state.getLoanId() + "/renew"))
             .andReturn());
     }
 
-    @Then("续借应该失败")
+    @Then("the renewal should fail")
     public void renewShouldFail() {
         int status = state.getMvcResult().getResponse().getStatus();
         assertThat(status).isEqualTo(409);
@@ -187,7 +187,7 @@ public class BorrowReturnStepDefinitions {
 
     // ========== Overdue steps ==========
 
-    @Given("^读者\"([^\"]*)\"已经借出了图书\"([^\"]*)\"的副本\"([^\"]*)\"且已逾期$")
+    @Given("^patron \"([^\"]*)\" has already borrowed copy \"([^\"]*)\" of book \"([^\"]*)\" and it is overdue$")
     public void patronAlreadyBorrowedAndOverdue(String patronId, String bookId, String copyId) throws Exception {
         state.setPatronId(patronId);
         state.setBookId(bookId);
@@ -203,13 +203,13 @@ public class BorrowReturnStepDefinitions {
         );
     }
 
-    @When("系统处理逾期借阅")
+    @When("the system processes overdue loans")
     public void systemProcessesOverdueLoans() throws Exception {
         state.setMvcResult(mockMvc.perform(post("/api/circulation/admin/process-overdue"))
             .andReturn());
     }
 
-    @Then("^借阅状态应该为\"([^\"]*)\"$")
+    @Then("^the loan status should be \"([^\"]*)\"$")
     public void loanStatusShouldBe(String expectedStatus) throws Exception {
         // The process-overdue returns a list of overdue loans
         String json = state.getMvcResult().getResponse().getContentAsString(StandardCharsets.UTF_8);
@@ -228,7 +228,7 @@ public class BorrowReturnStepDefinitions {
 
     // ========== Cancel hold steps ==========
 
-    @Given("^读者\"([^\"]*)\"已经预约了图书\"([^\"]*)\"$")
+    @Given("^patron \"([^\"]*)\" has already placed a hold on book \"([^\"]*)\"$")
     public void patronAlreadyPlacedHold(String patronId, String bookId) throws Exception {
         state.setBookId(bookId);
         state.setPatronId(patronId);
@@ -246,7 +246,7 @@ public class BorrowReturnStepDefinitions {
         }
     }
 
-    @When("读者取消该预约")
+    @When("the patron cancels the hold")
     public void cancelHold() throws Exception {
         state.setMvcResult(mockMvc.perform(
                 delete("/api/circulation/holds/" + state.getHoldId())
@@ -254,7 +254,7 @@ public class BorrowReturnStepDefinitions {
             .andReturn());
     }
 
-    @Then("预约已取消")
+    @Then("the hold is cancelled")
     public void holdCancelled() {
         assertThat(state.getMvcResult().getResponse().getStatus()).isEqualTo(200);
     }

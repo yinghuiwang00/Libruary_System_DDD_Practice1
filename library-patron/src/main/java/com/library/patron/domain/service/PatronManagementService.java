@@ -8,7 +8,7 @@ import com.library.patron.domain.model.Patron;
 import com.library.patron.domain.model.enums.MembershipStatus;
 import com.library.patron.domain.model.enums.PatronType;
 import com.library.patron.domain.repository.PatronRepository;
-import com.library.shared.domain.event.DomainEventPublisher;
+import com.library.patron.infrastructure.messaging.PatronDomainEventPublisher;
 import com.library.shared.domain.model.PatronId;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,9 +21,9 @@ import java.util.List;
 public class PatronManagementService {
 
     private final PatronRepository patronRepository;
-    private final DomainEventPublisher eventPublisher;
+    private final PatronDomainEventPublisher eventPublisher;
 
-    public PatronManagementService(PatronRepository patronRepository, DomainEventPublisher eventPublisher) {
+    public PatronManagementService(PatronRepository patronRepository, PatronDomainEventPublisher eventPublisher) {
         this.patronRepository = patronRepository;
         this.eventPublisher = eventPublisher;
     }

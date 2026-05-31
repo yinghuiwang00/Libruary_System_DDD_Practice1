@@ -4,6 +4,9 @@ server:
 spring:
   application:
     name: library-patron-test
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.kafka.KafkaAutoConfiguration
   datasource:
     url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;MODE=PostgreSQL
     username: sa
@@ -22,3 +25,26 @@ spring:
 springdoc:
   api-docs:
     enabled: false
+
+---
+# EmbeddedKafka 集成测试专用 profile
+# 在测试类上使用 @ActiveProfiles("embedded-kafka") 激活
+spring:
+  config:
+    activate:
+      on-profile: embedded-kafka
+  autoconfigure:
+    exclude: []
+  kafka:
+    bootstrap-servers: ${spring.embedded.kafka.brokers:localhost:9092}
+    consumer:
+      group-id: library-patron
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      # value-serializer 用 JsonSerializer：Publisher 发送 DomainEvent 对象
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      properties:
+        spring.json.add.type.headers: false

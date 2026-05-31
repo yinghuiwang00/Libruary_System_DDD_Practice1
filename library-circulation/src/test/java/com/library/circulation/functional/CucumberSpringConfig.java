@@ -16,7 +16,6 @@ import org.springframework.transaction.support.TransactionTemplate;
     webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT
 )
 @AutoConfigureMockMvc
-@ActiveProfiles("test")
 @CucumberContextConfiguration
 public class CucumberSpringConfig {
 

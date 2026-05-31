@@ -25,14 +25,14 @@ public class BookPublishingSteps {
     @Autowired
     private TestScenarioState state;
 
-    @When("我发布该图书")
+    @When("I publish the book")
     public void publishBook() throws Exception {
         state.setMvcResult(mockMvc.perform(post("/api/catalog/books/{id}/publish", state.getBookId())
                 .contentType(MediaType.APPLICATION_JSON))
             .andReturn());
     }
 
-    @Then("^图书状态变为\"([^\"]*)\"$")
+    @Then("^the book status becomes \"([^\"]*)\"$")
     @SuppressWarnings("unchecked")
     public void bookStatusBecomes(String expectedStatus) throws Exception {
         assertThat(state.getMvcResult().getResponse().getStatus()).isEqualTo(200);

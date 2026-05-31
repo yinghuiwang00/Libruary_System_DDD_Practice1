@@ -7,7 +7,7 @@ import com.library.patron.domain.model.Patron;
 import com.library.patron.domain.model.enums.MembershipStatus;
 import com.library.patron.domain.model.enums.PatronType;
 import com.library.patron.domain.repository.PatronRepository;
-import com.library.shared.domain.event.DomainEventPublisher;
+import com.library.patron.infrastructure.messaging.PatronDomainEventPublisher;
 import com.library.shared.domain.model.PatronId;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -35,7 +35,7 @@ class PatronManagementServiceTest {
     private PatronRepository patronRepository;
 
     @Mock
-    private DomainEventPublisher eventPublisher;
+    private PatronDomainEventPublisher eventPublisher;
 
     private PatronManagementService service;
 

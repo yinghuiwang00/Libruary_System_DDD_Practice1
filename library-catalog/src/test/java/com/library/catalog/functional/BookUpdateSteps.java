@@ -22,7 +22,7 @@ public class BookUpdateSteps {
     @Autowired
     private TestScenarioState state;
 
-    @When("^我将该图书的标题更新为\"([^\"]*)\"$")
+    @When("^I update the book title to \"([^\"]*)\"$")
     public void updateBookTitle(String newTitle) throws Exception {
         UpdateBookCommand command = new UpdateBookCommand(newTitle, null, null, null, null);
         state.setMvcResult(mockMvc.perform(put("/api/catalog/books/{id}", state.getBookId())
@@ -31,7 +31,7 @@ public class BookUpdateSteps {
             .andReturn());
     }
 
-    @Then("图书更新成功")
+    @Then("the book is updated successfully")
     public void bookUpdated() {
         assertThat(state.getMvcResult().getResponse().getStatus()).isEqualTo(200);
     }

@@ -24,11 +24,11 @@ public class BookQuerySteps {
     @Autowired
     private TestScenarioState state;
 
-    @Given("^系统中存在一本ISBN为\"([^\"]*)\"且状态为\"([^\"]*)\"的图书$")
+    @Given("^a book with ISBN \"([^\"]*)\" and status \"([^\"]*)\" exists in the system$")
     public void publishedBookWithIsbnExists(String isbn, String status) {
         Book book = Book.create(
             new ISBN(isbn),
-            "领域驱动设计", "Test description", null, 400, "zh"
+            "Domain-Driven Design", "Test description", null, 400, "zh"
         );
         book.addAuthor("author-001", "Eric Evans", AuthorRole.AUTHOR);
         book.setPublisher("publisher-001");
@@ -38,14 +38,14 @@ public class BookQuerySteps {
         state.setBookId(saved.getId().getValue());
     }
 
-    @When("我通过该图书的ID查询图书")
+    @When("I query the book by its ID")
     public void queryBookById() throws Exception {
         state.setMvcResult(mockMvc.perform(get("/api/catalog/books/{id}", state.getBookId())
                 .contentType(MediaType.APPLICATION_JSON))
             .andReturn());
     }
 
-    @Then("返回图书信息")
+    @Then("the book information is returned")
     public void bookInfoReturned() {
         // Assertion handled by SharedBookSteps
     }

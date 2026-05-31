@@ -1,45 +1,45 @@
-Feature: 图书借出与归还
-  作为图书馆管理员
-  我想管理图书的借出和归还
-  以便跟踪图书的流通状态
+Feature: Book Borrowing and Returning
+  As a library administrator
+  I want to manage book borrowing and returning
+  So that I can track the circulation status of books
 
-  Scenario: 成功借出图书
-    Given 读者"PATRON-001"想要借阅图书"BOOK-001"的副本"COPY-001"
-    When 读者借出该图书
-    Then 借出成功
-    And 借阅状态为"ACTIVE"
+  Scenario: Successfully borrow a book
+    Given patron "PATRON-001" wants to borrow copy "COPY-001" of book "BOOK-001"
+    When the patron borrows the book
+    Then the borrowing succeeds
+    And the loan status is "ACTIVE"
 
-  Scenario: 成功归还图书
-    Given 读者"PATRON-002"已经借出了图书"BOOK-002"的副本"COPY-002"
-    When 读者归还该图书
-    Then 归还成功
-    And 借阅状态为"RETURNED"
+  Scenario: Successfully return a book
+    Given patron "PATRON-002" has already borrowed copy "COPY-002" of book "BOOK-002"
+    When the patron returns the book
+    Then the return succeeds
+    And the loan status is "RETURNED"
 
-  Scenario: 成功预约图书
-    Given 图书"BOOK-003"当前不可借阅
-    When 读者"PATRON-003"预约该图书
-    Then 预约成功
-    And 预约状态为"WAITING"
+  Scenario: Successfully place a hold on a book
+    Given book "BOOK-003" is currently unavailable
+    When patron "PATRON-003" places a hold on the book
+    Then the hold is placed successfully
+    And the hold status is "WAITING"
 
-  Scenario: 成功续借图书
-    Given 读者"PATRON-004"已经借出了图书"BOOK-004"的副本"COPY-004"
-    When 读者续借该图书
-    Then 续借成功
-    And 借阅状态为"RENEWED"
-    And 续借次数为1
-    And 应还日期已延长
+  Scenario: Successfully renew a book
+    Given patron "PATRON-004" has already borrowed copy "COPY-004" of book "BOOK-004"
+    When the patron renews the book
+    Then the renewal succeeds
+    And the loan status is "RENEWED"
+    And the renewal count is 1
+    And the due date has been extended
 
-  Scenario: 续借次数超过限制
-    Given 读者"PATRON-005"已经借出了图书"BOOK-005"的副本"COPY-005"且已达到最大续借次数
-    When 读者尝试续借该图书
-    Then 续借应该失败
+  Scenario: Renewal count exceeds the limit
+    Given patron "PATRON-005" has already borrowed copy "COPY-005" of book "BOOK-005" and reached the maximum renewal count
+    When the patron attempts to renew the book
+    Then the renewal should fail
 
-  Scenario: 标记借阅为逾期
-    Given 读者"PATRON-006"已经借出了图书"BOOK-006"的副本"COPY-006"且已逾期
-    When 系统处理逾期借阅
-    Then 借阅状态应该为"OVERDUE"
+  Scenario: Mark a loan as overdue
+    Given patron "PATRON-006" has already borrowed copy "COPY-006" of book "BOOK-006" and it is overdue
+    When the system processes overdue loans
+    Then the loan status should be "OVERDUE"
 
-  Scenario: 取消预约
-    Given 读者"PATRON-007"已经预约了图书"BOOK-007"
-    When 读者取消该预约
-    Then 预约已取消
+  Scenario: Cancel a hold
+    Given patron "PATRON-007" has already placed a hold on book "BOOK-007"
+    When the patron cancels the hold
+    Then the hold is cancelled

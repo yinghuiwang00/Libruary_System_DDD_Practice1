@@ -1,12 +1,12 @@
-Feature: 分馆管理
-  作为图书馆管理员
-  我想管理图书馆分馆信息
-  以便支持多分馆馆藏管理
+Feature: Library Branch Management
+  As a library administrator
+  I want to manage library branch information
+  In order to support multi-branch inventory management
 
-  Scenario: 成功创建新分馆
-    Given 系统中不存在编码为"LIB-001"的分馆
-    When 我创建一个新分馆，编码为"LIB-001"，名称为"总馆"
-    And 地址为"中关村大街1号"
-    And 联系电话为"010-12345678"
-    Then 分馆创建成功
-    And 分馆状态为"ACTIVE"
+  Scenario: Successfully create a new library branch
+    Given no library with code "LIB-001" exists in the system
+    When I create a new library branch with code "LIB-001" and name "Main Library"
+    And the address is "1 Zhongguancun Street"
+    And the contact phone is "010-12345678"
+    Then the library branch is created successfully
+    And the library branch status is "ACTIVE"

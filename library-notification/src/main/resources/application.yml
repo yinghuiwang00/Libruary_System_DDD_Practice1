@@ -18,6 +18,15 @@ spring:
       hibernate:
         format_sql: true
         dialect: org.hibernate.dialect.PostgreSQLDialect
+  kafka:
+    # notification 是纯消费方，无 producer 配置
+    bootstrap-servers: localhost:29092
+    consumer:
+      group-id: library-notification
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      # value-deserializer 使用 StringDeserializer：Consumer 手动解析 JSON（防腐层设计）
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      auto-offset-reset: earliest
 
 springdoc:
   api-docs:

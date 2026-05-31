@@ -31,13 +31,13 @@ public class LibrarySteps {
     @Autowired
     private TestScenarioState state;
 
-    @Given("^系统中不存在编码为\"([^\"]*)\"的分馆$")
+    @Given("^no library with code \"([^\"]*)\" exists in the system$")
     public void noLibraryWithCode(String code) {
         boolean exists = libraryRepository.existsByCode(code);
         assertThat(exists).isFalse();
     }
 
-    @When("^我创建一个新分馆，编码为\"([^\"]*)\"，名称为\"([^\"]*)\"$")
+    @When("^I create a new library branch with code \"([^\"]*)\" and name \"([^\"]*)\"$")
     public void createLibrary(String code, String name) throws Exception {
         CreateLibraryCommand command = CreateLibraryCommand.builder()
             .code(code)
@@ -49,22 +49,22 @@ public class LibrarySteps {
             .andReturn());
     }
 
-    @When("^地址为\"([^\"]*)\"$")
+    @When("^the address is \"([^\"]*)\"$")
     public void setAddress(String address) {
         // Address is part of library creation, already handled
     }
 
-    @When("^联系电话为\"([^\"]*)\"$")
+    @When("^the contact phone is \"([^\"]*)\"$")
     public void setPhone(String phone) {
         // Phone is part of library creation, already handled
     }
 
-    @Then("分馆创建成功")
+    @Then("the library branch is created successfully")
     public void libraryCreated() {
         assertThat(state.getMvcResult().getResponse().getStatus()).isEqualTo(201);
     }
 
-    @Then("^分馆状态为\"([^\"]*)\"$")
+    @Then("^the library branch status is \"([^\"]*)\"$")
     @SuppressWarnings("unchecked")
     public void libraryStatusIs(String expectedStatus) throws Exception {
         ApiResponse<LibraryDTO> response = objectMapper.readValue(
@@ -76,12 +76,12 @@ public class LibrarySteps {
         state.setLibraryId(response.getData().getId());
     }
 
-    @Given("^系统中存在编码为\"([^\"]*)\"的分馆$")
+    @Given("^a library with code \"([^\"]*)\" exists in the system$")
     public void libraryExistsWithCode(String code) throws Exception {
         CreateLibraryCommand command = CreateLibraryCommand.builder()
             .code(code)
-            .name("测试分馆")
-            .address("测试地址")
+            .name("Test Library")
+            .address("Test Address")
             .phone("010-00000000")
             .build();
         var result = mockMvc.perform(post("/api/inventory/libraries")
