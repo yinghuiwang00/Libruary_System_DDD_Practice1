@@ -1,0 +1,57 @@
+name: CI Build & Test
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Build all modules
+        run: mvn clean install -DskipTests -B
+
+      - name: Run tests (library-shared)
+        run: mvn test -pl library-shared -B
+
+      - name: Run tests (library-catalog)
+        run: mvn test -pl library-catalog -B
+
+      - name: Run tests (library-inventory)
+        run: mvn test -pl library-inventory -B
+
+      - name: Run tests (library-circulation)
+        run: mvn test -pl library-circulation -B
+
+      - name: Run tests (library-patron)
+        run: mvn test -pl library-patron -B
+
+      - name: Run tests (library-payment)
+        run: mvn test -pl library-payment -B
+
+      - name: Run tests (library-analytics)
+        run: mvn test -pl library-analytics -B
+
+      - name: Run tests (library-notification)
+        run: mvn test -pl library-notification -B
+
+      - name: Upload test reports
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-reports
+          path: '*/target/surefire-reports/*.txt'
+          retention-days: 7
