@@ -1,7 +1,7 @@
-# Staging 环境验证方案
+# 17 - Staging 环境验证策略
 
-> 生成日期：2026-05-31
-> 目的：利用本地 Docker 运行的真实基础设施（PostgreSQL + Kafka + Redis）进行 staging 验证
+> 日期：2026-06-01
+> 状态：✅ 方案 A 已实施（`library-staging-test` 模块）
 
 ---
 
@@ -17,154 +17,113 @@
 
 | 服务 | 地址 | 用途 |
 |------|------|------|
-| PostgreSQL | `localhost:5432` | 7 个独立数据库 |
+| PostgreSQL | `localhost:5432` | 7 个业务数据库 + 1 个测试数据库 |
 | Kafka | `localhost:29092` | 消息 broker |
 | Kafka UI | `http://localhost:9000` | 消息可视化 |
-| Redis | `localhost:6379` | 缓存（待用） |
+| Redis | `localhost:6379` | 缓存（预留，当前未使用） |
 | Prometheus | `http://localhost:9090` | 监控 |
 | Grafana | `http://localhost:3000` | 可视化 |
 | Jaeger | `http://localhost:16686` | 链路追踪 |
 
 ---
 
-## 二、两种策略
+## 二、策略选择
 
-| 策略 | 描述 | 适用场景 |
-|------|------|---------|
-| **A. Spring Profile 切换** | 每个模块添加 `staging` profile，指向真实 PostgreSQL + Kafka | 本地开发机手动验证 |
-| **B. GitHub Actions Staging Job** | CI 增加 staging job，用 service containers 启动 PostgreSQL + Kafka | 自动化验证 |
+| 策略 | 描述 | 状态 |
+|------|------|------|
+| **A. 独立 staging-test 模块** | 新建 `library-staging-test`，直连真实 PostgreSQL + Kafka | ✅ 已实施 |
+| B. Spring Profile 切换（原方案） | 每个模块添加 `staging` profile | ❌ 未实施（方案 A 更优） |
+| C. GitHub Actions Staging Job | CI 增加 staging job，用 service containers | 📋 待实施 |
 
-**推荐路径：先 A 后 B**
-
-1. 先加 staging profile，本地手动验证跑通
-2. 再把 staging job 加到 GitHub Actions 自动化
+**选择方案 A 的原因**：
+- 完全独立模块，不修改任何现有模块代码
+- Maven Profile 隔离，默认构建不受影响
+- 测试 case 复用 `library-integration-test` 的 BDD feature 文件
 
 ---
 
-## 三、方案 A：Spring Profile 切换（本地验证）
+## 三、已实施方案 A：独立 staging-test 模块
 
-### 3.1 每个 main/application.yml 新增 `staging` profile
+### 3.1 模块概览
 
-在每个模块的 `src/main/resources/application.yml` 末尾添加：
-
-```yaml
----
-# Staging 环境：连接真实 Docker infra
-spring:
-  config:
-    activate:
-      on-profile: staging
-  datasource:
-    url: jdbc:postgresql://localhost:5432/library_{module}
-    username: ${DB_USERNAME:postgres}
-    password: ${DB_PASSWORD:dev_pg_2026}
-    driver-class-name: org.postgresql.Driver
-  jpa:
-    hibernate:
-      ddl-auto: update
-    show-sql: true
-    properties:
-      hibernate:
-        dialect: org.hibernate.dialect.PostgreSQLDialect
-  kafka:
-    bootstrap-servers: localhost:29092
-```
-
-其中 `{module}` 替换为：`catalog`, `inventory`, `circulation`, `patron`, `payment`, `analytics`, `notification`
-
-### 3.2 每个 test/application.yml 新增 `staging-kafka` profile
-
-在已有的 `embedded-kafka` profile 后面添加：
-
-```yaml
----
-# Staging 测试：连接真实 Kafka（不启动 EmbeddedKafka）
-spring:
-  config:
-    activate:
-      on-profile: staging-kafka
-  autoconfigure:
-    exclude: []
-  kafka:
-    bootstrap-servers: localhost:29092
-    consumer:
-      group-id: library-{module}-staging-test
-      auto-offset-reset: earliest
-      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-    producer:
-      key-serializer: org.apache.kafka.common.serialization.StringSerializer
-      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
-      properties:
-        spring.json.add.type.headers: false
-  datasource:
-    url: jdbc:postgresql://localhost:5432/library_{module}_test
-    username: ${DB_USERNAME:postgres}
-    password: ${DB_PASSWORD:dev_pg_2026}
-    driver-class-name: org.postgresql.Driver
-  jpa:
-    hibernate:
-      ddl-auto: create-drop
-    properties:
-      hibernate:
-        dialect: org.hibernate.dialect.PostgreSQLDialect
-```
-
-### 3.3 staging 测试类
-
-为需要连接真实 Kafka 的测试创建 staging 版本，使用 `@ActiveProfiles("staging-kafka")`：
-- 不需要 `@EmbeddedKafka` 注解（连接真实 broker）
-- 不需要手动创建 KafkaTemplate（Spring Boot 自动配置）
-- 测试数据写入真实 PostgreSQL
-
-### 3.4 使用方式
-
-```bash
-# 前置：确保 Docker infra 运行中
-docker ps | grep -E "postgres|kafka"
-
-# 方式 1：运行单个模块的 staging 测试
-cd library-patron
-mvn test -Dtest=CirculationEventConsumerIntegrationTest -Dspring.profiles.active=staging-kafka
-
-# 方式 2：启动单个服务，用 curl/Postman 手动验证
-cd library-catalog
-mvn spring-boot:run -Dspring-boot.run.profiles=staging
-
-# 方式 3：启动所有 7 个服务（需要不同终端）
-cd library-catalog && mvn spring-boot:run -Dspring-boot.run.profiles=staging &
-cd library-inventory && mvn spring-boot:run -Dspring-boot.run.profiles=staging &
-# ... 其他模块类似
-```
-
-### 3.5 需要修改的文件清单
-
-| 文件 | 操作 |
+| 属性 | 值 |
 |------|------|
-| 7 个 `src/main/resources/application.yml` | 添加 `staging` profile 段 |
-| 7 个 `src/test/resources/application.yml` | 添加 `staging-kafka` profile 段 |
-| `library-e2e-test/src/test/resources/application.yml` | 添加 `staging` profile 段 |
-| `library-integration-test/src/test/resources/application.yml` | 添加 `staging` profile 段 |
+| 模块名 | `library-staging-test` |
+| Maven Profile | `-Pstaging` 激活 |
+| 测试框架 | Cucumber BDD（7 个 feature，9 个 scenario） |
+| 数据库 | 真实 PostgreSQL `localhost:5432/library_staging_test` |
+| 消息 | 真实 Kafka `localhost:29092` |
+| 包名 | `com.library.staging` |
 
-### 3.6 前置条件
+### 3.2 测试覆盖的场景
 
-运行 staging 测试前需要：
+| Feature | 场景 | 涉及的 Bounded Context |
+|---------|------|----------------------|
+| borrow-book | 借书 → 更新 patron 贷款数 + 通知 | Circulation → Patron, Notification |
+| return-book | 还书 → 减少 patron 贷款数 | Circulation → Patron, Notification |
+| hold-book | 预约/取消预约 | Circulation → Patron |
+| new-book | 新书 → 创建库存记录 | Catalog → Inventory |
+| fine-payment | 罚款/缴费 → 更新 patron 罚款余额 | Circulation, Payment → Patron |
+| low-stock-alert | 低库存预警 → 通知 | Inventory → Notification |
+| patron-suspension | 停权 | Patron → Notification |
+
+### 3.3 环境管理
+
+#### 测试前（`@Before` 首轮场景）
+1. Kafka：删除 5 个旧 topics → 重建 5 个 topics（3 partitions）→ 删除 consumer groups
+2. 等待所有 Kafka consumer 获得 partition assignment
+3. PostgreSQL：DELETE 所有表数据（reverse FK order）
+
+#### 测试前（`@Before` 每个场景）
+1. PostgreSQL：DELETE 所有表数据
+2. 打印 BEFORE 快照（PostgreSQL 行数 + Kafka offset + Redis 状态）
+
+#### 测试后（`@After`）
+1. 打印 AFTER 快照（显示测试产生的数据变化 + PASSED/FAILED 状态）
+
+#### 全部结束后（`@AfterAll`）
+1. 停止所有 Kafka consumer containers
+2. Kafka：删除 5 个 topics + 删除所有 consumer groups
+3. PostgreSQL：`ddl-auto: create-drop` 自动删除所有表
+
+#### 环境恢复保证
+
+| 基础设施 | 恢复到测试前 |
+|---------|-------------|
+| PostgreSQL 表结构 | ✅ create-drop（启动建表，关闭删表） |
+| PostgreSQL 数据 | ✅ @Before 每场景清空 |
+| Kafka 消息 | ✅ @AfterAll 删除 topics，@Before 重建 |
+| Kafka Consumer Groups | ✅ @AfterAll 停止 consumers 后删除 groups |
+| Redis | — 暂未使用 |
+
+### 3.4 实时数据监控
+
+`StagingEnvironmentInspector` 在每个 Scenario 前后自动打印环境快照：
+
+- **PostgreSQL**：11 张表的行数（`SELECT COUNT(*)`）
+- **Kafka**：5 个 topic 的 end offset（消息总数）+ consumer group 状态
+- **Redis**：placeholder（项目未使用，预留扩展）
+
+### 3.5 使用方式
 
 ```bash
-# 创建 7 个业务数据库
-for db in library_catalog library_inventory library_circulation library_patron library_payment library_analytics library_notification; do
-  psql -h localhost -U postgres -c "CREATE DATABASE $db;" 2>/dev/null || echo "$db already exists"
-done
+# 前置：确保 Docker infra 运行 + 创建数据库
+docker ps | grep -E "postgres|kafka"
+psql -h localhost -U postgres -c "CREATE DATABASE library_staging_test;" 2>/dev/null
 
-# 可选：创建测试专用数据库（带 _test 后缀，避免污染业务数据）
-for db in library_catalog_test library_inventory_test library_circulation_test library_patron_test library_payment_test library_analytics_test library_notification_test; do
-  psql -h localhost -U postgres -c "CREATE DATABASE $db;" 2>/dev/null || echo "$db already exists"
-done
+# 运行 staging 测试
+mvn test -Pstaging -pl library-staging-test
+
+# staging 全量构建
+mvn clean install -Pstaging
+
+# 默认构建（不含 staging-test，与之前完全一致）
+mvn clean install
 ```
 
 ---
 
-## 四、方案 B：GitHub Actions Staging Job（自动化）
+## 四、待实施方案 C：GitHub Actions Staging Job
 
 ### 4.1 在 `.github/workflows/ci.yml` 新增 staging job
 
@@ -225,17 +184,12 @@ done
       - name: Build all modules
         run: mvn clean install -DskipTests -B
 
-      - name: Create databases
+      - name: Create staging database
         run: |
-          for db in library_catalog library_inventory library_circulation library_patron library_payment library_analytics library_notification; do
-            PGPASSWORD=dev_pg_2026 psql -h localhost -U postgres -c "CREATE DATABASE $db;"
-          done
+          PGPASSWORD=dev_pg_2026 psql -h localhost -U postgres -c "CREATE DATABASE library_staging_test;"
 
-      - name: Run E2E tests against staging infra
-        run: mvn test -Dspring.profiles.active=staging -pl library-e2e-test -B
-
-      - name: Run integration tests against staging infra
-        run: mvn test -Dspring.profiles.active=staging -pl library-integration-test -B
+      - name: Run staging tests
+        run: mvn test -Pstaging -pl library-staging-test -B
 
       - name: Upload staging test reports
         uses: actions/upload-artifact@v4
@@ -246,43 +200,44 @@ done
           retention-days: 7
 ```
 
-### 4.2 Service Containers 说明
+### 4.2 CI 流水线设计
 
-| 容器 | 镜像 | 端口映射 | 用途 |
-|------|------|---------|------|
-| postgres | `postgres:16` | 5432:5432 | 真实数据库 |
-| zookeeper | `cp-zookeeper:7.5.0` | 2181:2181 | Kafka 依赖 |
-| kafka | `cp-kafka:7.5.0` | 29092:29092 | 真实消息 broker |
+```
+build (H2 + EmbeddedKafka) → 快速反馈（现有测试）
+  ↓
+staging (PostgreSQL + Kafka) → 深度验证（新增 staging 测试）
+```
 
-注意：service containers 之间通过 Docker 网络互通，所以 Kafka 的 `KAFKA_ZOOKEEPER_CONNECT` 用 `zookeeper:2181`（容器名），而 `KAFKA_ADVERTISED_LISTENERS` 用 `localhost:29092`（让测试代码能连上）。
+两个 job 都通过才算成功。
 
 ---
 
-## 五、验证步骤
+## 五、验证检查清单
 
-### 本地手动验证（方案 A）
+### 本地验证
 
-1. `docker ps` 确认 postgres + kafka 运行
-2. 创建 7 个数据库（见 3.6）
-3. `mvn test -Dspring.profiles.active=staging-kafka -pl library-patron` 跑单模块
-4. Kafka UI (`http://localhost:9000`) 确认消息收发
-5. `psql` 确认数据写入正确
+- [x] `mvn clean install` — 默认构建不受影响
+- [x] `mvn clean install -Pstaging -DskipTests` — staging 编译通过
+- [x] `mvn test -pl library-integration-test` — 现有测试通过
+- [x] `mvn test -Pstaging -pl library-staging-test` — staging 测试通过 ✅ (9/9)
+- [x] 测试结束后 Kafka topics 已删除（@AfterAll 清理）
+- [x] 测试结束后 consumer groups 已删除
+- [x] 测试结束后 PostgreSQL 表已删除（create-drop）
 
-### CI 自动化验证（方案 B）
+### CI 验证（待实施）
 
-1. Push 到 GitHub
-2. `build` job 先跑 H2 + EmbeddedKafka 测试（快速反馈）
-3. `staging` job 再跑真实 infra 测试（深度验证）
-4. 两个 job 都通过才算成功
+- [ ] GitHub Actions staging job 通过
+- [ ] staging test reports 上传成功
 
 ---
 
 ## 六、实施优先级
 
-| 优先级 | 任务 | 预估工作量 |
-|:------:|------|:---------:|
-| P0 | 方案 A：7 个 main yml 加 staging profile | 30 分钟 |
-| P0 | 方案 A：7 个 test yml 加 staging-kafka profile | 30 分钟 |
-| P1 | 本地手动验证跑通 | 1 小时 |
-| P2 | 方案 B：GitHub Actions staging job | 1 小时 |
-| P3 | 补充 Jaeger/Grafana 集成 | 2 小时 |
+| 优先级 | 任务 | 状态 |
+|:------:|------|:----:|
+| P0 | 方案 A：独立 staging-test 模块 | ✅ 已完成 |
+| P0 | 环境清理（@AfterAll Kafka 恢复） | ✅ 已完成 |
+| P0 | 实时数据监控（StagingEnvironmentInspector） | ✅ 已完成 |
+| P1 | 本地手动验证跑通 | ✅ 已完成 (9/9 tests, 20s) |
+| P2 | 方案 C：GitHub Actions staging job | 📋 待实施 |
+| P3 | Redis 集成测试（当项目引入 Redis 后） | 📋 待实施 |

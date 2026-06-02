@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Enterprise Library Management System built with Domain-Driven Design (DDD) principles.
 
-**Status:** All 7 bounded contexts + shared module + cross-context integration (Kafka) implemented. 10 Maven modules, 318 main Java files, 152 test artifacts.
+**Status:** All 7 bounded contexts + shared module + cross-context integration (Kafka) implemented. 11 Maven modules, 318 main Java files, 152 test artifacts.
 
 ## Architecture
 
@@ -24,6 +24,7 @@ Enterprise Library Management System built with Domain-Driven Design (DDD) princ
 | library-notification | 8087 | Due reminders, alerts, multi-channel | 4 | 4 |
 | library-e2e-test | - | JUnit 5 E2E tests (9 tests) | - | - |
 | library-integration-test | - | Cucumber BDD E2E tests (9 scenarios) | - | - |
+| library-staging-test | - | Cucumber BDD staging tests (9 scenarios, real infra) | - | - |
 
 ### DDD Layering (Actual Package Structure)
 
@@ -167,7 +168,7 @@ For new cross-context event handlers:
 - **Runtime**: Java 17, Spring Boot 3.2.5
 - **Database**: PostgreSQL (prod) / H2 in PostgreSQL mode (test), Spring Data JPA, Hibernate
 - **Messaging**: Apache Kafka (spring-kafka), EmbeddedKafka for tests
-- **Build**: Maven multi-module (parent pom + 10 child modules)
+- **Build**: Maven multi-module (parent pom + 11 child modules)
 - **API Docs**: SpringDoc OpenAPI 2.5.0 (Swagger UI per module)
 - **Testing**: JUnit 5, Mockito, AssertJ, Awaitility, Cucumber 7.15.0, MockMvc
 
@@ -201,6 +202,9 @@ cd library-catalog && mvn spring-boot:run
 # Run E2E tests only
 cd library-e2e-test && mvn test
 cd library-integration-test && mvn test
+
+# Run staging tests (requires Docker: PostgreSQL + Kafka)
+mvn test -Pstaging -pl library-staging-test
 ```
 
 ## Implementation Progress
@@ -217,6 +221,7 @@ cd library-integration-test && mvn test
 | 8 | Notification Context | ✅ Complete | 7 unit + 7 steps + 6 features |
 | 9 | Shared Module | ✅ Complete | 6 unit tests |
 | 10 | Cross-Context Integration | ✅ Partial | 9 E2E JUnit5 + 9 E2E BDD |
+| 11 | Staging Test (Real Infra) | ✅ Complete | 9 BDD scenarios (PostgreSQL + Kafka) |
 
 **Remaining**: Saga coordinator, API Gateway, distributed tracing.
 
