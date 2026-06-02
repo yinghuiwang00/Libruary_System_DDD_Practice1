@@ -137,7 +137,7 @@ mvn clean install
         image: postgres:16
         env:
           POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: dev_pg_2026
+          POSTGRES_PASSWORD: postgres
         ports:
           - 5432:5432
         options: >-
@@ -158,6 +158,7 @@ mvn clean install
         env:
           KAFKA_BROKER_ID: 1
           KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+          KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:29092
           KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:29092
           KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT
           KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
@@ -165,17 +166,17 @@ mvn clean install
         ports:
           - 29092:29092
         options: >-
-          --health-cmd "kafka-topics --bootstrap-server localhost:9092 --list"
+          --health-cmd "kafka-topics --bootstrap-server localhost:29092 --list"
           --health-interval 10s
           --health-timeout 10s
-          --health-retries 5
+          --health-retries 10
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Set up JDK 17
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           java-version: '17'
           distribution: 'temurin'
@@ -185,14 +186,19 @@ mvn clean install
         run: mvn clean install -DskipTests -B
 
       - name: Create staging database
+        env:
+          PGPASSWORD: postgres
         run: |
-          PGPASSWORD=dev_pg_2026 psql -h localhost -U postgres -c "CREATE DATABASE library_staging_test;"
+          psql -h localhost -U postgres -c "CREATE DATABASE library_staging_test;"
 
       - name: Run staging tests
+        env:
+          DB_USERNAME: postgres
+          DB_PASSWORD: postgres
         run: mvn test -Pstaging -pl library-staging-test -B
 
       - name: Upload staging test reports
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: staging-test-reports
@@ -224,12 +230,10 @@ staging (PostgreSQL + Kafka) → 深度验证（新增 staging 测试）
 - [x] 测试结束后 consumer groups 已删除
 - [x] 测试结束后 PostgreSQL 表已删除（create-drop）
 
-### CI 验证（待实施）
+### CI 验证
 
-- [ ] GitHub Actions staging job 通过
-- [ ] staging test reports 上传成功
-
-**注意**：CI 验证需要推送代码到 GitHub 后自动触发。本地已确认 YAML 配置正确。
+- [x] GitHub Actions staging job 通过 ✅ (build 3m59s + staging 1m44s)
+- [x] staging test reports 上传成功
 
 ---
 

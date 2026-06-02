@@ -222,6 +222,7 @@ mvn test -Pstaging -pl library-staging-test
 | 9 | Shared Module | ✅ Complete | 6 unit tests |
 | 10 | Cross-Context Integration | ✅ Partial | 9 E2E JUnit5 + 9 E2E BDD |
 | 11 | Staging Test (Real Infra) | ✅ Complete | 9 BDD scenarios (PostgreSQL + Kafka) |
+| 12 | CI Staging Job (GitHub Actions) | ✅ Complete | build (H2) + staging (PostgreSQL+Kafka) 双 job |
 
 **Remaining**: Saga coordinator, API Gateway, distributed tracing.
 
@@ -239,6 +240,7 @@ mvn test -Pstaging -pl library-staging-test
 | Implementation patterns | `DDD_Explanation/` (4 docs on layering, aggregates, events, testing) |
 | E2E BDD plan | `Architecture_Design/E2E-BDD-Migration-Plan.md` |
 | Test Strategy | `Architecture_Design/15-Test-Strategy.md` |
+| Staging Test Strategy | `Architecture_Design/17-Staging-Test-Strategy.md` |
 | Kafka strategy | `Architecture_Design/Kafka-Strategy.md` |
 | Development plan | `DEVELOPMENT_PLAN.md` |
 
