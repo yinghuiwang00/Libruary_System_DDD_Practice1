@@ -1,7 +1,7 @@
 # 17 - Staging 环境验证策略
 
 > 日期：2026-06-01
-> 状态：✅ 方案 A 已实施（`library-staging-test` 模块）
+> 状态：✅ 方案 A + 方案 C 已实施
 
 ---
 
@@ -33,7 +33,7 @@
 |------|------|------|
 | **A. 独立 staging-test 模块** | 新建 `library-staging-test`，直连真实 PostgreSQL + Kafka | ✅ 已实施 |
 | B. Spring Profile 切换（原方案） | 每个模块添加 `staging` profile | ❌ 未实施（方案 A 更优） |
-| C. GitHub Actions Staging Job | CI 增加 staging job，用 service containers | 📋 待实施 |
+| C. GitHub Actions Staging Job | CI 增加 staging job，用 service containers | ✅ 已实施 |
 
 **选择方案 A 的原因**：
 - 完全独立模块，不修改任何现有模块代码
@@ -123,7 +123,7 @@ mvn clean install
 
 ---
 
-## 四、待实施方案 C：GitHub Actions Staging Job
+## 四、已实施方案 C：GitHub Actions Staging Job
 
 ### 4.1 在 `.github/workflows/ci.yml` 新增 staging job
 
@@ -229,6 +229,8 @@ staging (PostgreSQL + Kafka) → 深度验证（新增 staging 测试）
 - [ ] GitHub Actions staging job 通过
 - [ ] staging test reports 上传成功
 
+**注意**：CI 验证需要推送代码到 GitHub 后自动触发。本地已确认 YAML 配置正确。
+
 ---
 
 ## 六、实施优先级
@@ -239,5 +241,5 @@ staging (PostgreSQL + Kafka) → 深度验证（新增 staging 测试）
 | P0 | 环境清理（@AfterAll Kafka 恢复） | ✅ 已完成 |
 | P0 | 实时数据监控（StagingEnvironmentInspector） | ✅ 已完成 |
 | P1 | 本地手动验证跑通 | ✅ 已完成 (9/9 tests, 20s) |
-| P2 | 方案 C：GitHub Actions staging job | 📋 待实施 |
+| P2 | 方案 C：GitHub Actions staging job | ✅ 已完成 |
 | P3 | Redis 集成测试（当项目引入 Redis 后） | 📋 待实施 |
