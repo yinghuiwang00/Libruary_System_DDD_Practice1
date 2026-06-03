@@ -1,7 +1,7 @@
 # 19 - 补充跨上下文测试用例
 
 > 日期：2026-06-03
-> 状态：📋 待实施
+> 状态：🔄 实施中
 
 ---
 
@@ -185,8 +185,8 @@ library-staging-test/src/test/
 
 | # | 新增场景 | integration-test | staging-test | e2e-test (JUnit5) |
 |---|---------|:---:|:---:|:---:|
-| 10 | borrow-book-inventory (Inventory) | ✅ | ✅ | ✅ |
-| 11 | return-book-inventory (Inventory) | ✅ | ✅ | ✅ |
+| 10 | borrow-book-inventory (Inventory) | ✅ | 📋 | ✅ |
+| 11 | return-book-inventory (Inventory) | 📋 | 📋 | 📋 |
 | 12 | overdue-notice (Notification) | ✅ | ✅ | ✅ |
 | 13 | full-lifecycle (Patron+Inventory+Payment+Notification) | ✅ | ✅ | ✅ |
 | 14 | hold-to-borrow (Notification+Patron+Inventory) | ✅ | ✅ | ✅ |
