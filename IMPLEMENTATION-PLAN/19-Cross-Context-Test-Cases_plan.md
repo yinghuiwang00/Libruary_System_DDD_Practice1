@@ -165,18 +165,68 @@ library-staging-test/src/test/
 
 ---
 
+## 六、三个测试模块覆盖一致性验证
+
+### 当前覆盖（三个模块完全一致）
+
+| # | 场景 | integration-test | staging-test | e2e-test (JUnit5) |
+|---|------|:---:|:---:|:---:|
+| 1 | borrow-book (Patron+Notification) | ✅ | ✅ | ✅ |
+| 2 | return-book (Patron+Notification) | ✅ | ✅ | ✅ |
+| 3 | hold-book placed (Notification) | ✅ | ✅ | ✅ |
+| 4 | hold-book fulfilled (Notification) | ✅ | ✅ | ✅ |
+| 5 | new-book (Inventory) | ✅ | ✅ | ✅ |
+| 6 | fine incurred (Patron+Payment+Notification) | ✅ | ✅ | ✅ |
+| 7 | payment completed (Patron+Notification) | ✅ | ✅ | ✅ |
+| 8 | low-stock-alert (Notification) | ✅ | ✅ | ✅ |
+| 9 | patron-suspension (Notification) | ✅ | ✅ | ✅ |
+
+### 新增后覆盖（三个模块应保持一致）
+
+| # | 新增场景 | integration-test | staging-test | e2e-test (JUnit5) |
+|---|---------|:---:|:---:|:---:|
+| 10 | borrow-book-inventory (Inventory) | ✅ | ✅ | ✅ |
+| 11 | return-book-inventory (Inventory) | ✅ | ✅ | ✅ |
+| 12 | overdue-notice (Notification) | ✅ | ✅ | ✅ |
+| 13 | full-lifecycle (Patron+Inventory+Payment+Notification) | ✅ | ✅ | ✅ |
+| 14 | hold-to-borrow (Notification+Patron+Inventory) | ✅ | ✅ | ✅ |
+
+### e2e-test 新增文件
+
+```
+library-e2e-test/src/test/java/com/library/integration/
+├── inventory/BorrowBookInventoryEndToEndTest.java
+├── inventory/ReturnBookInventoryEndToEndTest.java
+├── overdue/OverdueNoticeEndToEndTest.java
+├── lifecycle/FullLifecycleEndToEndTest.java
+└── hold/HoldToBorrowEndToEndTest.java
+```
+
+### 实施顺序
+
+1. **先做 `library-e2e-test`**（JUnit5，最直接，能快速验证跨上下文事件流是否正确）
+2. **再做 `library-integration-test`**（Cucumber BDD，从 E2E 测试逻辑转为 BDD feature + steps）
+3. **最后做 `library-staging-test`**（复用 integration-test 的 feature + 改写 steps 为真实 infra 版本）
+
+每完成一个模块立即 `mvn test` 验证通过后再做下一个。
+
+---
+
 ## 五、验证步骤
 
 ```bash
-# integration-test
+# 1. E2E 测试（H2 + EmbeddedKafka）
+mvn test -pl library-e2e-test
+
+# 2. Integration BDD 测试（H2 + EmbeddedKafka）
 mvn test -pl library-integration-test
 
-# staging-test（需 Docker）
+# 3. Staging BDD 测试（PostgreSQL + Kafka，需 Docker）
 mvn test -Pstaging -pl library-staging-test
 
-# 默认构建
+# 4. 全量构建确认无影响
 mvn clean install
 
-# CI
+# 5. CI 验证（build + staging 两个 job）
 git push
 ```

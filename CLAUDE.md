@@ -118,6 +118,36 @@ All aggregates use `@EmbeddedId` + `@Version`. Database schema changes:
 
 ## Development Workflow
 
+### Stage Commit & Push (阶段提交)
+
+每完成一个阶段性的工作（如一个模块、一个功能点、一轮修复），必须提交到 GitHub：
+
+```bash
+# 1. 查看当前改动
+git status
+git diff --stat
+
+# 2. 暂存并提交
+git add .
+git commit -m "<type>: <description>"
+
+# 3. 推送到远程
+git push origin main
+```
+
+**Commit type**: `feat`, `fix`, `refactor`, `docs`, `test`, `chore`, `perf`, `ci`
+
+**触发时机**：每完成以下任意一项，立即 commit + push：
+- 一个新模块/文件创建完成
+- 一个功能实现完成（通过编译）
+- 一批测试编写完成
+- 一个 bug 修复完成
+- 一批文档/配置更新完成
+
+**跳过 CI**（仅在必要时）：
+- `[skip ci]` — 跳过整个 CI
+- `[skip build]` — 跳过 build job（staging 也会因依赖被跳过）
+
 ### Before Writing Any Code
 
 1. Check `Architecture_Design/` for the relevant bounded context design doc (02-08)
