@@ -185,7 +185,7 @@ library-staging-test/src/test/
 
 | # | 新增场景 | integration-test | staging-test | e2e-test (JUnit5) |
 |---|---------|:---:|:---:|:---:|
-| 10 | borrow-book-inventory (Inventory) | ✅ | 📋 | ✅ |
+| 10 | borrow-book-inventory (Inventory) | ✅ | ✅ | ✅ |
 | 11 | return-book-inventory (Inventory) | 📋 | 📋 | 📋 |
 | 12 | overdue-notice (Notification) | ✅ | ✅ | ✅ |
 | 13 | full-lifecycle (Patron+Inventory+Payment+Notification) | ✅ | ✅ | ✅ |
