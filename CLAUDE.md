@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Enterprise Library Management System built with Domain-Driven Design (DDD) principles.
 
-**Status:** All 7 bounded contexts + shared module + cross-context integration (Kafka) implemented. 11 Maven modules, 318 main Java files, 152 test artifacts.
+**Status:** All 7 bounded contexts + shared module + cross-context integration (Kafka) implemented. 11 Maven modules, 318 main Java files, 152 test artifacts. CI pipeline: build (H2) + staging (PostgreSQL + Kafka).
 
 ## Architecture
 
@@ -116,7 +116,7 @@ All aggregates use `@EmbeddedId` + `@Version`. Database schema changes:
 3. Only `library-shared` and `library-integration-test`/`library-e2e-test` may depend on multiple contexts
 4. New cross-context communication MUST go through Kafka events, NOT direct API calls
 
-## Development Rules
+## Development Workflow
 
 ### Before Writing Any Code
 
@@ -124,6 +124,31 @@ All aggregates use `@EmbeddedId` + `@Version`. Database schema changes:
 2. Check `DDD_Explanation/` for implementation patterns used in this project
 3. Identify which bounded context you're modifying — stay within its boundary
 4. If adding cross-context behavior: define the event first, then consumer
+
+### New Feature Development Checklist
+
+When adding a new feature to an existing bounded context:
+
+1. **Domain Layer** (`domain/`)
+   - [ ] Entity/Value Object in `domain/model/`
+   - [ ] Domain event (if state-changing) in `domain/event/` extending `DomainEvent`
+   - [ ] Domain exception (if business rule) in `domain/exception/` extending `DomainException`
+   - [ ] Repository interface in `domain/repository/` extending `JpaRepository`
+
+2. **Application Layer** (`application/`)
+   - [ ] Command object in `application/command/`
+   - [ ] Application service in `application/service/`
+   - [ ] DTO + `ApiResponse<T>` mapping in `application/dto/`
+
+3. **Infrastructure Layer** (`infrastructure/`)
+   - [ ] Event publisher bean in `infrastructure/messaging/` (Double Publishing pattern)
+   - [ ] Custom repository impl (if needed) in `infrastructure/persistence/`
+
+4. **Interface Layer** (`interfaces/`)
+   - [ ] REST controller in `interfaces/rest/`
+   - [ ] Error handling via `GlobalExceptionHandler`
+
+5. **Tests** (see Testing section below)
 
 ### Aggregate Root Checklist
 
@@ -153,24 +178,127 @@ For new cross-context event handlers:
 - [ ] Unknown eventTypes logged at DEBUG, not thrown
 - [ ] Errors logged at ERROR, not re-thrown (prevent poison pill)
 
-### Testing Requirements
+## Testing Requirements
 
-1. **Unit Tests**: Domain models, services, value objects (JUnit 5 + Mockito + AssertJ)
-2. **Integration Tests**: API endpoints with MockMvc + H2 (`@SpringBootTest`)
-3. **BDD Tests**: Happy path flows via Cucumber (`.feature` + `*Steps.java`)
-4. **E2E Tests**: If cross-context, add scenario to BOTH `library-e2e-test` AND `library-integration-test`
-5. **Coverage**: 80%+ required
-6. **Cucumber deps**: `cucumber-java:7.15.0`, `cucumber-spring:7.15.0`, `cucumber-junit-platform-engine:7.15.0`
-7. **Surefire**: Must include `<include>**/CucumberTestSuite.java</include>` in surefire config
+### Test Types (ALL required for new features)
+
+| Layer | Test Type | Framework | Scope |
+|-------|-----------|-----------|-------|
+| Domain | Unit Tests | JUnit 5 + Mockito + AssertJ | Aggregates, value objects, domain services |
+| Application | Unit Tests | JUnit 5 + Mockito | Application services, event handlers |
+| API | Integration Tests | MockMvc + H2 `@SpringBootTest` | REST controllers, request/response mapping |
+| Cross-context | BDD E2E Tests | Cucumber 7.15.0 | Happy path flows via `.feature` + `*Steps.java` |
+| Cross-context | Staging Tests | Cucumber 7.15.0 + real infra | Same BDD scenarios against PostgreSQL + Kafka |
+
+### Test Location Rules
+
+| Test Type | Module | Database | Kafka | Package |
+|-----------|--------|----------|-------|---------|
+| Unit tests | Each bounded context module | H2 (in-memory) | EmbeddedKafka | `com.library.<context>.<layer>` |
+| Integration tests | Each bounded context module | H2 (in-memory) | EmbeddedKafka | `com.library.<context>.<layer>` |
+| E2E BDD (JUnit 5) | `library-e2e-test` | H2 (in-memory) | EmbeddedKafka | `com.library.e2e` |
+| E2E BDD (Cucumber) | `library-integration-test` | H2 (in-memory) | EmbeddedKafka | `com.library.integration` |
+| Staging BDD (Cucumber) | `library-staging-test` | PostgreSQL (real) | Kafka (real) | `com.library.staging` |
+
+### Cucumber BDD Conventions
+
+- **Feature files**: `src/test/resources/features/integration/<feature-name>.feature`
+- **Step definitions**: `src/test/java/com/library/<module>/bdd/<FeatureName>Steps.java`
+- **Test suite**: `CucumberTestSuite.java` with `@Suite` + `@IncludeEngines("cucumber")`
+- **Cucumber deps**: `cucumber-java:7.15.0`, `cucumber-spring:7.15.0`, `cucumber-junit-platform-engine:7.15.0`
+- **Surefire**: Must include `<include>**/CucumberTestSuite.java</include>` in surefire config
+
+### When to Add Tests to Each Module
+
+| Scenario | library-e2e-test | library-integration-test | library-staging-test |
+|----------|:---:|:---:|:---:|
+| New single-context feature | ❌ | ❌ | ❌ |
+| New cross-context event flow | ✅ | ✅ | ✅ |
+| Modified existing cross-context flow | ✅ | ✅ | ✅ |
+| New Kafka topic/consumer | ✅ | ✅ | ✅ |
+| Bug fix within single context | ❌ | ❌ | ❌ |
+
+**Rule of thumb**: If it touches Kafka events between bounded contexts → add to all three test modules.
+
+### Coverage
+
+- **Minimum**: 80%+ per module
+- **Verify**: `mvn test` reports coverage via surefire
+- **Focus**: Domain logic > Application services > Controllers
+
+## CI Pipeline
+
+### Pipeline Structure
+
+```
+push / PR → main / develop
+  │
+  ├── build (H2 + EmbeddedKafka)         ~4 min
+  │   ├── Build all modules (skip tests)
+  │   ├── Test library-shared
+  │   ├── Test library-catalog
+  │   ├── Test library-inventory
+  │   ├── Test library-circulation
+  │   ├── Test library-patron
+  │   ├── Test library-payment
+  │   ├── Test library-analytics
+  │   ├── Test library-notification
+  │   ├── Test library-e2e-test
+  │   ├── Test library-integration-test
+  │   └── Upload test-reports artifact
+  │
+  └── staging (PostgreSQL + Kafka)       ~2 min
+      ├── needs: build ✅
+      ├── Build all modules (skip tests)
+      ├── Create database (PostgreSQL service container)
+      ├── Test library-staging-test (9 scenarios)
+      └── Upload staging-test-reports artifact
+```
+
+Both jobs must pass for CI to succeed.
+
+### CI Configuration Details
+
+| Item | Value |
+|------|-------|
+| Workflow file | `.github/workflows/ci.yml` |
+| Runner | `ubuntu-latest` |
+| JDK | 17 (temurin) |
+| Build cache | Maven |
+| PostgreSQL (staging) | postgres:16 service container, password: `postgres` |
+| Kafka (staging) | cp-kafka:7.5.0 service container, port 29092 |
+| Zookeeper (staging) | cp-zookeeper:7.5.0 service container |
+| Actions versions | checkout@v6, setup-java@v5, upload-artifact@v7 (Node.js 24) |
+| Skip CI | Add `[skip ci]` to commit message |
+
+### Kafka Service Container (CI)
+
+**Critical**: Kafka container MUST listen on port 29092 internally (`KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:29092`) to match `KAFKA_ADVERTISED_LISTENERS`. Otherwise the Kafka controller cannot connect to itself inside the container.
+
+### Staging Test Environment Management
+
+The `library-staging-test` module manages its own environment lifecycle:
+
+| Phase | PostgreSQL | Kafka |
+|-------|-----------|-------|
+| `@BeforeAll` | Hibernate `create-drop` creates tables | Delete old topics → rebuild with 3 partitions → delete consumer groups |
+| `@Before` (each scenario) | DELETE all table data | — |
+| `@After` (each scenario) | Print snapshot (row counts) | Print snapshot (offsets) |
+| `@AfterAll` | Hibernate `create-drop` drops tables | Delete topics + delete consumer groups |
+
+**Environment variables** (staging-test `application.yml`):
+- `DB_USERNAME`: defaults to `postgres`
+- `DB_PASSWORD`: defaults to `dev_pg_2026` (overridden to `postgres` in CI)
 
 ## Technology Stack
 
 - **Runtime**: Java 17, Spring Boot 3.2.5
 - **Database**: PostgreSQL (prod) / H2 in PostgreSQL mode (test), Spring Data JPA, Hibernate
-- **Messaging**: Apache Kafka (spring-kafka), EmbeddedKafka for tests
+- **Messaging**: Apache Kafka (spring-kafka), EmbeddedKafka for unit/integration tests
 - **Build**: Maven multi-module (parent pom + 11 child modules)
 - **API Docs**: SpringDoc OpenAPI 2.5.0 (Swagger UI per module)
 - **Testing**: JUnit 5, Mockito, AssertJ, Awaitility, Cucumber 7.15.0, MockMvc
+- **CI**: GitHub Actions (build + staging jobs)
 
 ## Build and Test Commands
 
@@ -205,6 +333,9 @@ cd library-integration-test && mvn test
 
 # Run staging tests (requires Docker: PostgreSQL + Kafka)
 mvn test -Pstaging -pl library-staging-test
+
+# Staging full build (includes staging-test)
+mvn clean install -Pstaging
 ```
 
 ## Implementation Progress
@@ -242,8 +373,9 @@ mvn test -Pstaging -pl library-staging-test
 | Test Strategy | `Architecture_Design/15-Test-Strategy.md` |
 | Staging Test Strategy | `Architecture_Design/17-Staging-Test-Strategy.md` |
 | Kafka strategy | `Architecture_Design/Kafka-Strategy.md` |
+| CI workflow | `.github/workflows/ci.yml` |
+| Implementation plans | `IMPLEMENTATION-PLAN/` |
 | Development plan | `DEVELOPMENT_PLAN.md` |
-
 
 ## Infrastructure (Dev Environment)
 
